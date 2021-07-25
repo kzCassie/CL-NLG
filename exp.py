@@ -12,9 +12,9 @@ from transformers import (BertConfig, BertForMaskedLM, BertTokenizer,
                           T5Config, T5ForConditionalGeneration, T5Tokenizer)
 
 from common.utils import init_arg_parser, check_config, load_checkpoint
-from train import train
-from evaluate import evaluate
-from generate import decode
+from components.train import train
+from components.evaluate import evaluate
+from components.generate import decode
 
 MODEL_CLASSES = {
     'gpt2': (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
@@ -36,13 +36,12 @@ if __name__ == '__main__':
 
     # Load pre-trained model
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    model, tokenizer = load_checkpoint(args.model_loc, config_class, model_class, tokenizer_class)
+    model, tokenizer = load_checkpoint(args.model_loc, model_class, tokenizer_class)
     # logging.info("Command line parameters: %s", args)
 
     # run experiment
     if args.mode == "train":
         global_step, tr_loss = train(args, model, tokenizer)
-        logging.info(" global_step = %s, average loss = %s", global_step, tr_loss)
     elif args.mode == "eval":
         evaluate(args, model, tokenizer)
     elif args.mode == "decode":

@@ -143,7 +143,9 @@ dmypy.json
 # ssh
 cloudflared*
 
-# pretrained models
-saved_models/
+# other
+run
+data_cached
+saved_models
 scgpt.tar.gz
-scgpt/
+scgpt

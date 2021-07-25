@@ -1,6 +1,9 @@
 
 
 
+# TODO: dataloader
+# remove last batch, so valid avg metric score
+
 
 # #TODO: name cached data file
 # directory, tail = os.path.split(file_path)
@@ -10,7 +13,16 @@
 #                                                 max_seq) + '_' +
 #                                             filename + '.bin')
 #
-# # TODO: load dataset, from cached bin or txt file
-# TODO: re-write load_pretrained function from common.utils
-
+##### Train
 # TODO: use tensor board for visualization
+# TODO: add patience
+
+
+##### Decode
+#TODO:decode - topk / topp / beam size
+#TODO: evaluate.py wrong as it gives tgt utterance to decoder when evaluating loss?
+#     Need to combine evaluate, evaluator with decode
+# implement more metrics: BLEU
+# /combine evaluator.py
+
+

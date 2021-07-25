@@ -9,15 +9,11 @@ import torch
 import logging
 import numpy as np
 
-logger = logging.getLogger(__name__)
 
-
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 def init_arg_parser():
@@ -41,12 +37,12 @@ def init_arg_parser():
     parser.add_argument("--no_cuda", default=False, action='store_true', help="Do not use gpu")
     # parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
 
-    parser.add_argument("--per_gpu_train_batch_size", default=1, type=int,
-                        help="Batch size per GPU/CPU for training.")
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
-                        help="Number of updates steps to accumulate before performing a backward/update pass.")
-    parser.add_argument("--per_gpu_eval_batch_size", default=1, type=int,
-                        help="Batch size per GPU/CPU for evaluation.")
+    # parser.add_argument("--per_gpu_train_batch_size", default=1, type=int,
+    #                     help="Batch size per GPU/CPU for training.")
+    # parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
+    #                     help="Number of updates steps to accumulate before performing a backward/update pass.")
+    # parser.add_argument("--per_gpu_eval_batch_size", default=1, type=int,
+    #                     help="Batch size per GPU/CPU for evaluation.")
 
     ### Training ###
     parser.add_argument("--train_data_file", default=None, type=str,
@@ -92,13 +88,18 @@ def init_arg_parser():
     ### Evaluating ###
     parser.add_argument("--eval_data_file", default=None, type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
+    parser.add_argument("--eval_batch_size", default=1, type=int, help="Batch size for evaluation.")
+
 
     ### Decoding ###
     # TODO: write help strings
-    parser.add_argument('--decode_input_file', type=str, default=None, help="file")
-    parser.add_argument('--decode_output_file', type=str, default=None, help="file")
-
+    parser.add_argument('--decode_input_file', type=str, default=None, help="File to be decoded")
+    parser.add_argument('--decode_output_file', type=str, default=None, help="Decoded utterance strings")
+    parser.add_argument('--decode_result_file', type=str, default=None, help="Decoding result file for metric values")
+    parser.add_argument("--decode_batch_size", default=1, type=int, help="Batch size for decoding.")
     parser.add_argument("--top_k", type=int, default=0)
+
+
     parser.add_argument("--top_p", type=float, default=0.9)
     parser.add_argument("--temperature", type=float, default=1.0, help="temperature of 0 implies greedy sampling")
 
@@ -126,7 +127,7 @@ def init_arg_parser():
     # TODO: these options all related to data loading?
     parser.add_argument('--overwrite_cache', default=False, action='store_true',
                         help="Overwrite the cached processed dataset for training and evaluation")
-    parser.add_argument('--data_cache_path', default="", help="Path to preprocessed data bin file")
+    parser.add_argument('--data_cache_path', default="", type=str, help="Path to cache preprocessed data bin file")
     parser.add_argument('--max_intent_len', default=40, type=int, help="Max intention length (for EncDec model)")
     parser.add_argument('--max_utter_len', default=60, type=int, help="Max utterance length (for EncDec model)")
     parser.add_argument('--max_len', default=80, type=int, help="Max raw sentence length (for LM model)")
@@ -201,8 +202,11 @@ def check_config(parser):
     # args = parser.parse_args(command_line2.split())
 
     ### generic config ###
-    if args.model_type in ['t5']:
-        args.enc_dec = True
+    set_seed(args.seed)
+    args.enc_dec = True if args.model_type in ['t5'] else False
+    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', level=logging.INFO)
+    logging.info("Processing with device: %s, ", args.device)
 
     # which pre-trained model to load
     if not args.model_name and not args.model_path:
@@ -212,54 +216,15 @@ def check_config(parser):
     else:
         args.model_loc = args.model_name if args.model_name else args.model_path
 
-    # Setup logging
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                        level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
-
-    ## train
-    if 'train' in args.mode:
-        if args.model_type in ["bert", "roberta", "distilbert"] and not args.mlm:
-            raise ValueError("BERT, RoBERTa and distilbert do not have LM heads but masked LM heads. They must be run using the --mlm "
-                             "flag (masked language modeling).")
-
-
-
+    ### mode ###
+    if args.mode == 'train':
         if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and not args.overwrite_output_dir:
-            raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
-
-        # Setup CUDA, GPU & distributed training
-        # local_rank=-1: disable distributed machine with node structure
-        if args.local_rank == -1 or args.no_cuda:
-            device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
-            args.n_gpu = torch.cuda.device_count()
-        else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-            torch.cuda.set_device(args.local_rank)
-            device = torch.device("cuda", args.local_rank)
-            torch.distributed.init_process_group(backend='nccl')
-            args.n_gpu = 1
-        args.device = device
-
-        # Set seed
-        set_seed(args)
-
-        # Setup distant debugging if needed
-        if args.server_ip and args.server_port:
-            # Distant debugging - see https://code.visualstudio.com/docs/python/debugging#_attach-to-a-local-script
-            import ptvsd
-            print("Waiting for debugger attach")
-            ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
-            ptvsd.wait_for_attach()
-
-        # logger
-        logger.warning("Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
-                       args.local_rank, device, args.n_gpu, bool(args.local_rank != -1), args.fp16)
-
-    ## decode
+            raise ValueError("Output directory ({}) already exists and is not empty. Use "
+                             "--overwrite_output_dir to overcome.".format(args.output_dir))
+    if args.mode == 'eval':
+        pass
     if args.mode == "decode":
-        args.device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
-        args.n_gpu = torch.cuda.device_count()
-        set_seed(args)
-
+        pass
     return args
 
 
@@ -287,7 +252,7 @@ def rotate_checkpoints(args, checkpoint_prefix, use_mtime=False):
     number_of_checkpoints_to_delete = max(0, len(checkpoints_sorted) - args.save_total_limit)
     checkpoints_to_be_deleted = checkpoints_sorted[:number_of_checkpoints_to_delete]
     for checkpoint in checkpoints_to_be_deleted:
-        logger.info("Deleting older checkpoint [{}] due to args.save_total_limit".format(checkpoint))
+        logging.info("Deleting older checkpoint [{}] due to args.save_total_limit".format(checkpoint))
         shutil.rmtree(checkpoint)
 
 
@@ -297,12 +262,11 @@ def load_checkpoint(model_loc, model_class, tokenizer_class):
     return model, tokenizer
 
 
-def save_checkpoint(output_dir, model, tokenizer, args=None):
+def save_checkpoint(output_dir, model, tokenizer, args):
     # if you use save_pretrained for the model and tokenizer,
     # you can reload them using from_pretrained()
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
-    if args is not None:
-        torch.save(args, os.path.join(output_dir, 'training_args.bin'))
+    torch.save(args, os.path.join(output_dir, 'training_args.bin'))

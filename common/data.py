@@ -1,6 +1,10 @@
 import os
+import torch
 import pickle
-from torch.utils.data import Dataset
+import logging
+
+from torch.utils.data import Dataset, DataLoader, SequentialSampler, RandomSampler
+from functools import partial
 
 
 class FewShotWozDataset(Dataset):
@@ -67,7 +71,7 @@ def enc_dec_collate_fn(data, tokenizer, max_intent_len=40, max_utter_len=60):
                                    max_length=max_intent_len)['input_ids']
     padded_utterances_ids = tokenizer(utterances, padding='longest', truncation=True,
                                       max_length=max_utter_len)['input_ids']
-    return padded_intents_ids, padded_utterances_ids
+    return torch.LongTensor(padded_intents_ids), torch.LongTensor(padded_utterances_ids)
 
 
 def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
@@ -79,7 +83,60 @@ def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
     """
     raw_str = [f"{d[0]} {separator} {d[1]}" for d in data]
     padded_raw_ids = tokenizer(raw_str, padding='longest', truncation=True, max_length=max_len)['input_ids']
-    return padded_raw_ids, padded_raw_ids
+    return torch.LongTensor(padded_raw_ids), torch.LongTensor(padded_raw_ids)
+
+
+###########################
+#  Construct DataLoader   #
+###########################
+def get_dataset(data_file, data_cache_path=None, overwrite_cache=False):
+    if not overwrite_cache and os.path.exists(data_cache_path):
+        logging.info("Loading processed data from cached file %s", data_cache_path)
+        dataset = FewShotWozDataset.from_bin_file(data_cache_path)
+    else:
+        logging.info("Creating features from dataset file at %s. Caching to %s.",
+                     data_file, data_cache_path)
+        dataset = FewShotWozDataset.from_txt_file(data_file, data_cache_path, '&')
+    return dataset
+
+
+def get_collate_fn(args, tokenizer):
+    if args.enc_dec:
+        fn = partial(enc_dec_collate_fn, tokenizer=tokenizer, max_intent_len=args.max_intent_len,
+                     max_utter_len=args.max_utter_len)
+    else:
+        fn = partial(lm_collate_fn, tokenizer=tokenizer, max_len=args.max_len, separator='&')
+    return fn
+
+
+def get_sampler(dataset, mode):
+    if mode == 'eval' or 'decode':
+        return SequentialSampler(dataset)
+    else:
+        return RandomSampler(dataset)
+
+
+def get_data_loader(args, tokenizer):
+    if args.mode == "train":
+        data_file = args.train_data_file
+        batch_size = args.train_batch_size
+        sampler_class = RandomSampler
+    elif args.mode == "eval":
+        data_file = args.eval_data_file
+        batch_size = args.eval_batch_size
+        sampler_class = SequentialSampler
+    elif args.mode == "decode":
+        data_file = args.decode_input_file
+        batch_size = args.decode_batch_size
+        sampler_class = SequentialSampler
+    else:
+        raise ValueError("Invalid args.mode")
+
+    dataset = get_dataset(data_file, args.data_cache_path, args.overwrite_cache)
+    sampler = sampler_class(dataset)
+    collate_fn = get_collate_fn(args, tokenizer)
+    dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, collate_fn=collate_fn, drop_last=False)
+    return dataloader, len(dataset)
 
 
 ###########################
@@ -87,13 +144,12 @@ def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
 if __name__ == "__main__":
     from transformers import T5Tokenizer
     from torch.utils.data import DataLoader
-    from functools import partial
 
     train_file = "../data/restaurant/new.txt"
-    cache_file = "../data_cached/restaurant/new.bin"
+    cache_path = "../data_cached/restaurant/new.bin"
 
     t5_tokenizer = T5Tokenizer.from_pretrained('t5-small')
-    dataset = FewShotWozDataset().from_txt_file(train_file, cache_file, '&')
+    dataset = FewShotWozDataset.from_txt_file(train_file, cache_path, '&')
     dataloader = DataLoader(dataset, batch_size=5, shuffle=True, sampler=None,
                             collate_fn=partial(enc_dec_collate_fn, tokenizer=t5_tokenizer,
                                                max_intent_len=40, max_utter_len=60))
