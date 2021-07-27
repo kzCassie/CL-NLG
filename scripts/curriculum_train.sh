@@ -1,21 +1,19 @@
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=0
 
-domain=attraction
+domain=restaurant
 model_type=t5
-
-### Curriculum ###
 curriculum_name="one_pass"
 curriculum_bucket_size=10
 
 ### file path ###
 # data
-data_file_name="train"
+data_file_name=train
 data_cache_dir=data_cached
 # input model
 model_name=t5-small
 # output model
-model_save_path=saved_models/t5-small/${curriculum_name}
+model_save_path=saved_models/t5-small/CL_${curriculum_name}
 
 ### hyper param ###
 seed=42
@@ -31,7 +29,7 @@ output_dir=${model_save_path}/${domain}
 
 python exp.py \
     --seed ${seed} \
-    --mode train \
+    --mode curriculum_train \
     --curriculum_name ${curriculum_name} \
     --curriculum_bucket_size ${curriculum_bucket_size} \
     --model_type ${model_type} \

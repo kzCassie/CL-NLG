@@ -21,7 +21,7 @@ def init_arg_parser():
 
     ### General configuration ###
     parser.add_argument("--seed", default=42, type=int, help="Random seed for initialization")
-    parser.add_argument("--mode", default="", type=str, choices=["train", "eval", "train_with_eval", "decode"],
+    parser.add_argument("--mode", default="", type=str, choices=["train", "curriculum_train", "eval", "train_with_eval", "decode"],
                         required=True, help="Choose the running mode for the script.")
     # parser.add_argument("--evaluate_during_training", default=False, action="store_true",
     #                     help="Evaluating during training")
@@ -50,8 +50,16 @@ def init_arg_parser():
     parser.add_argument("--output_dir", default=None, type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
+    # curriculum train
+    parser.add_argument("--curriculum_name", default="NC", type=str, help="[NC, one_pass, baby_step]")
+    parser.add_argument("--curriculum_bucket_size", default=5, type=int, help="Num instances per curriculum bucket.")
+
     # Training schedule details
     parser.add_argument("--train_batch_size", default=1, type=int, help="Training batch size of DataLoader")
+    parser.add_argument("--train_patience", default=-1, type=int, help="Max epoch without improvements")
+    parser.add_argument("--valid_every_epoch", default=10, type=int,
+                        help="Perform validation. Only save model that is deemed better after each validation")
+
 
 
 
@@ -206,7 +214,7 @@ def check_config(parser):
     args.enc_dec = True if args.model_type in ['t5'] else False
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', level=logging.INFO)
-    logging.info("Processing with device: %s, ", args.device)
+    logging.info("Processing with device: %s", args.device)
 
     # which pre-trained model to load
     if not args.model_name and not args.model_path:

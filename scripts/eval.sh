@@ -4,12 +4,16 @@ export CUDA_VISIBLE_DEVICES=0
 domain=restaurant
 model_type=t5
 
+### Curriculum ###
+curriculum_name="one_pass"
+
 ### file path ###
 # data
 data_file_name=new
 data_cache_dir=data_cached
 # output model
-model_save_path=saved_models/t5-small
+model_save_path=saved_models/t5-small/${curriculum_name}
+
 
 ### hyper param ###
 seed=42

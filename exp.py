@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # run experiment
     if args.mode == "train":
-        global_step, tr_loss = train(args, model, tokenizer)
+        model, history_losses = train(args, model, tokenizer)
     elif args.mode == "eval":
         evaluate(args, model, tokenizer)
     elif args.mode == "decode":

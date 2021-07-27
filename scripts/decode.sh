@@ -4,12 +4,15 @@ export CUDA_VISIBLE_DEVICES=0
 domain=restaurant
 model_type=t5
 
+### Curriculum ###
+curriculum_name="baby_step"
+
 ### file path ###
 # data
-data_file_name="new"
+data_file_name="test"
 data_cache_dir=data_cached
 # output model - use outputted model for decoding
-model_save_path=saved_models/t5-small
+model_save_path=saved_models/t5-small/${curriculum_name}
 
 ### hyper param ###
 seed=42

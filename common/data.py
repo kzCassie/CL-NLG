@@ -12,10 +12,10 @@ class FewShotWozDataset(Dataset):
     self.intents (List[str]): Dialogue Act string (the part before '&').
     self.utterances (List[str]): Natural language utterances string (the part after '&').
     """
-    def __init__(self):
-        self.separator = ""
-        self.intents = []
-        self.utterances = []
+    def __init__(self, intents=[], utterances=[], separator=""):
+        self.separator = separator
+        self.intents = intents
+        self.utterances = utterances
 
     @staticmethod
     def from_bin_file(path):
@@ -27,24 +27,24 @@ class FewShotWozDataset(Dataset):
     @staticmethod
     def from_txt_file(input_path, cache_path, separator='&'):
         """ load from .txt file """
-        self = FewShotWozDataset()
-        self.separator = separator
+        new_dataset = FewShotWozDataset()
+        new_dataset.separator = separator
 
         with open(input_path, encoding="utf-8") as f:
             for line in f:
                 str_split = line.lower().split(separator)
                 code_str = str_split[0]
                 utter_str = str_split[1]
-                self.intents.append(code_str)
-                self.utterances.append(utter_str)
+                new_dataset.intents.append(code_str)
+                new_dataset.utterances.append(utter_str)
 
         # save
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         with open(cache_path, 'wb') as handle:
-            pickle.dump(self, handle)
+            pickle.dump(new_dataset, handle)
 
         # return
-        return self
+        return new_dataset
 
     def __len__(self):
         return len(self.intents)
@@ -143,7 +143,6 @@ def get_data_loader(args, tokenizer):
 #   Main
 if __name__ == "__main__":
     from transformers import T5Tokenizer
-    from torch.utils.data import DataLoader
 
     train_file = "../data/restaurant/new.txt"
     cache_path = "../data_cached/restaurant/new.bin"
