@@ -33,7 +33,7 @@ def main():
     vocab       = 'utils/resource/vocab'
     percentage  = 100
     topk        = 5
-    detectpairs = 'utils/resource/detect.pair'
+    detectpairs = 'utils/resource/slot_type.json'
 
     reader = DataReader(random_seed, domain, 'dt', vocab, train, valid, test, 100 , 0, lexCutoff=4)
     gentscorer = GentScorer(detectpairs)

@@ -1,38 +1,27 @@
 import os
-import glob
+import json
 import torch
 import logging
-
 from tqdm import tqdm
-from transformers import WEIGHTS_NAME
 
+from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.meteor_score import meteor_score
+import bleurt.score
 from common.utils import load_checkpoint
-from common.data import get_data_loader
+from common.data import get_data_loader, get_comp_dataloader
 
 
-def get_checkpoint_list(args):
-    """ get list of checkpoints """
-    if args.eval_all_checkpoints:
-        checkpoints = list(os.path.dirname(c) for c in sorted(
-            glob.glob(args.output_dir + '/**/' + WEIGHTS_NAME, recursive=True)))
-    else:
-        checkpoints = [args.output_dir]
-    return checkpoints
-
-
-def eval_checkpoint(args, model, tokenizer, prefix):
-    # data
-    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer)
-
+def eval_checkpoint(eval_dataloader, len_eval_dataset, model, args, verbose=False):
+    """ Get model loss """
     # Eval!
-    logging.info("***** Running evaluation {} *****".format(prefix))
-    logging.info("  Num examples = %d", len_eval_dataset)
-    logging.info("  Batch size = %d", args.eval_batch_size)
+    if verbose:
+        logging.info("***** Running evaluation *****")
+        logging.info("  Num examples = %d", len_eval_dataset)
+        logging.info("  Batch size = %d", args.eval_batch_size)
 
     model.to(args.device)
     model.eval()
     eval_loss = 0.0
-    nb_eval_steps = 0
 
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         inputs, labels = batch
@@ -42,41 +31,62 @@ def eval_checkpoint(args, model, tokenizer, prefix):
         with torch.no_grad():
             outputs = model(inputs, labels=labels)
             loss = outputs.loss
-            eval_loss += loss.item()
-        nb_eval_steps += 1
+            eval_loss += loss.item() * len(inputs)
 
-    eval_loss = eval_loss / nb_eval_steps
-    perplexity = torch.exp(torch.tensor(eval_loss))
+    eval_loss = eval_loss / len_eval_dataset
+    return eval_loss
 
-    result = {
-        "perplexity": perplexity
-    }
 
+def save_result(result, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    json.dump(result, open(path, 'w'), indent=2)
+
+
+def evaluate_loss(args, model_class, tokenizer_class):
+    model, tokenizer = load_checkpoint(args.output_dir, model_class, tokenizer_class)
+    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer)
+    result = eval_checkpoint(eval_dataloader, len_eval_dataset, model, args, verbose=True)
     # save
-    output_eval_file = os.path.join(args.output_dir, prefix, "eval_results.txt")
-    os.makedirs(os.path.dirname(output_eval_file), exist_ok=True)
-    with open(output_eval_file, "w") as writer:
-        logging.info("***** Eval results {} *****".format(prefix))
-        for key in sorted(result.keys()):
-            logging.info("  %s = %s", key, str(result[key]))
-            writer.write("%s = %s\n" % (key, str(result[key])))
-
+    path = os.path.join(args.output_dir, "eval_results.txt")
+    save_result(result, path)
+    logging.info(f"Evaluation result saved to {path}.")
     return result
 
 
-def evaluate(args, model_class, tokenizer_class):
-    checkpoints = get_checkpoint_list(args)
-    logging.info("Evaluate the following checkpoints: %s", checkpoints)
+def evaluate_output(args, output_file, tgt_file):
+    """ Compare predicted output and tgt output """
+    dataloader, len_dataset = get_comp_dataloader(output_file, tgt_file)  # batch size=1
+    bleu_scores, meteor_scores, bleurt_scores = [], [], []
 
-    results = {}
-    for checkpoint in checkpoints:
-        global_step = checkpoint.split('-')[-1] if args.eval_all_checkpoints else ""
-        prefix = checkpoint.split('/')[-1] if 'checkpoint' in checkpoint else ""
+    bleurt_scorer = bleurt.score.BleurtScorer()
+    for batch in tqdm(dataloader, desc="Evaluating", total=len(dataloader)):
+        output, target = batch
+        output = output[0]
+        target = target[0]
 
-        logging.info("Evaluate checkpoint {}".format(checkpoint))
-        model, tokenizer = load_checkpoint(checkpoint, model_class, tokenizer_class)
-        result = eval_checkpoint(args, model, tokenizer, prefix)
-        result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
-        results.update(result)
+        bleu_scores.append(sentence_bleu([output.split()], target.split()))
+        meteor_scores.append(meteor_score([output], target))
+        bleurt_scores.append(bleurt_scorer.score(references=[target], candidates=[output])[0])
 
+    # Avg Evaluation
+    avg_bleu = sum(bleu_scores) / len(bleu_scores)
+    avg_meteor = sum(meteor_scores) / len(meteor_scores)
+    avg_bleurt = sum(bleurt_scores) / len(bleurt_scores)
+
+    # result
+    results = {
+        "Num examples": len_dataset,
+        "BLEU": avg_bleu,
+        "METEOR": avg_meteor,
+        "BLEURT": avg_bleurt
+    }
+
+    # save
+    path = f"{args.output_dir}/eval_results.json"
+    json.dump(results, open(path, 'w'), indent=2)
+    logging.info("Evaluation results saved to {}".format(path))
     return results
+
+
+
+

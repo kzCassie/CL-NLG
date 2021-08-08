@@ -145,6 +145,8 @@ dmypy.json
 cloudflared*
 
 # other
+other_data
+venv_colab
 run
 data_cached
 saved_models

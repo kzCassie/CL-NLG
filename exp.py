@@ -1,5 +1,3 @@
-import logging
-
 from transformers import (BertConfig, BertForMaskedLM, BertTokenizer,
                           GPT2Config, GPT2LMHeadModel, GPT2Tokenizer,
                           OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer,
@@ -13,8 +11,8 @@ from transformers import (BertConfig, BertForMaskedLM, BertTokenizer,
 
 from common.utils import init_arg_parser, check_config, load_checkpoint
 from components.train import train
-from components.evaluate import evaluate
 from components.generate import decode
+from components.evaluate import evaluate_output
 
 MODEL_CLASSES = {
     'gpt2': (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
@@ -41,8 +39,10 @@ if __name__ == '__main__':
 
     # run experiment
     if args.mode == "train":
-        model, history_losses = train(args, model, tokenizer)
-    elif args.mode == "eval":
-        evaluate(args, model, tokenizer)
+        train(args, model, tokenizer)
     elif args.mode == "decode":
         decode(args, model, tokenizer)
+    elif args.mode == "evaluate":
+        evaluate_output(args, args.eval_output_file, args.eval_tgt_file)
+    else:
+        raise ValueError("Invalid running mode for exp.py")

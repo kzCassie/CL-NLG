@@ -7,12 +7,12 @@ from torch.utils.data import Dataset, DataLoader, SequentialSampler, RandomSampl
 from functools import partial
 
 
-class FewShotWozDataset(Dataset):
+class AbstractDataset(Dataset):
     """
     self.intents (List[str]): Dialogue Act string (the part before '&').
     self.utterances (List[str]): Natural language utterances string (the part after '&').
     """
-    def __init__(self, intents=[], utterances=[], separator=""):
+    def __init__(self, intents=None, utterances=None, separator=""):
         self.separator = separator
         self.intents = intents
         self.utterances = utterances
@@ -25,8 +25,20 @@ class FewShotWozDataset(Dataset):
         return few_shot_woz_dataset
 
     @staticmethod
-    def from_txt_file(input_path, cache_path, separator='&'):
-        """ load from .txt file """
+    def from_txt_file(input_path, cache_path, **kwargs):
+        raise NotImplementedError("This method needs to be implemented.")
+
+    def __len__(self):
+        return len(self.intents)
+
+    def __getitem__(self, idx):
+        return self.intents[idx], self.utterances[idx]
+
+
+class FewShotWozDataset(AbstractDataset):
+    """ FewShotWoz Dataset """
+    @staticmethod
+    def from_txt_file(input_path, cache_path, separator='&', **kwargs):
         new_dataset = FewShotWozDataset()
         new_dataset.separator = separator
 
@@ -46,11 +58,59 @@ class FewShotWozDataset(Dataset):
         # return
         return new_dataset
 
+
+class MultiwozSgdDataset(AbstractDataset):
+    """ Multiwoz or SGD dataset """
+    @staticmethod
+    def from_txt_file(input_path, cache_path, **kwargs):
+        new_dataset = MultiwozSgdDataset()
+
+        # process src file
+        with open(input_path, encoding="utf-8") as f:
+            for line in f:
+                new_dataset.intents.append(line.lower())
+
+        # process tgt file
+        tgt_file = kwargs.get('tgt_file', None)
+        if tgt_file is not None:
+            with open(tgt_file, encoding="utf-8") as f:
+                for line in f:
+                    new_dataset.utterances.append(line.lower())
+
+        # save
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        with open(cache_path, 'wb') as handle:
+            pickle.dump(new_dataset, handle)
+
+        # return
+        return new_dataset
+
+
+# evaluation of predicted text outputs
+class ComparisonDataset(Dataset):
+    """ For evaluating outputs and targets
+    self.intents: predicted utterances
+    self.utterances:
+    """
+    def __init__(self, output_file, tgt_file):
+        self.outputs = []
+        self.tgts = []
+
+        # process output file
+        with open(output_file, encoding="utf-8") as f:
+            for line in f:
+                self.outputs.append(line.lower())
+
+        # process tgt file
+        with open(tgt_file, encoding="utf-8") as f:
+            for line in f:
+                self.tgts.append(line.lower())
+
     def __len__(self):
-        return len(self.intents)
+        return len(self.outputs)
 
     def __getitem__(self, idx):
-        return self.intents[idx], self.utterances[idx]
+        return self.outputs[idx], self.tgts[idx]
 
 
 ###########################
@@ -86,17 +146,20 @@ def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
     return torch.LongTensor(padded_raw_ids), torch.LongTensor(padded_raw_ids)
 
 
+# def comp_collate_fn(data, tokenizer):
+
+
 ###########################
 #  Construct DataLoader   #
 ###########################
-def get_dataset(data_file, data_cache_path=None, overwrite_cache=False):
+def get_dataset(data_file, tgt_file, data_cache_path=None, overwrite_cache=False):
     if not overwrite_cache and os.path.exists(data_cache_path):
         logging.info("Loading processed data from cached file %s", data_cache_path)
-        dataset = FewShotWozDataset.from_bin_file(data_cache_path)
+        dataset = MultiwozSgdDataset.from_bin_file(data_cache_path)
     else:
         logging.info("Creating features from dataset file at %s. Caching to %s.",
                      data_file, data_cache_path)
-        dataset = FewShotWozDataset.from_txt_file(data_file, data_cache_path, '&')
+        dataset = MultiwozSgdDataset.from_txt_file(data_file, data_cache_path, tgt_file=tgt_file)
     return dataset
 
 
@@ -116,26 +179,35 @@ def get_sampler(dataset, mode):
         return RandomSampler(dataset)
 
 
-def get_data_loader(args, tokenizer):
-    if args.mode == "train":
-        data_file = args.train_data_file
+def get_data_loader(args, tokenizer, mode):
+    if mode == "train":
+        data_file = args.train_data_file  # src file
+        tgt_file = args.train_tgt_file
         batch_size = args.train_batch_size
         sampler_class = RandomSampler
-    elif args.mode == "eval":
-        data_file = args.eval_data_file
-        batch_size = args.eval_batch_size
+    elif mode == "dev":
+        data_file = args.dev_data_file
+        tgt_file = args.dev_tgt_file
+        batch_size = args.dev_batch_size
         sampler_class = SequentialSampler
-    elif args.mode == "decode":
+    elif mode == "decode":
         data_file = args.decode_input_file
+        tgt_file = args.decode_tgt_file
         batch_size = args.decode_batch_size
         sampler_class = SequentialSampler
     else:
         raise ValueError("Invalid args.mode")
 
-    dataset = get_dataset(data_file, args.data_cache_path, args.overwrite_cache)
+    dataset = get_dataset(data_file, tgt_file, args.data_cache_path, args.overwrite_cache)
     sampler = sampler_class(dataset)
     collate_fn = get_collate_fn(args, tokenizer)
     dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, collate_fn=collate_fn, drop_last=False)
+    return dataloader, len(dataset)
+
+
+def get_comp_dataloader(output_file, tgt_file):
+    dataset = ComparisonDataset(output_file, tgt_file)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
     return dataloader, len(dataset)
 
 
@@ -148,7 +220,7 @@ if __name__ == "__main__":
     cache_path = "../data_cached/restaurant/new.bin"
 
     t5_tokenizer = T5Tokenizer.from_pretrained('t5-small')
-    dataset = FewShotWozDataset.from_txt_file(train_file, cache_path, '&')
+    dataset = FewShotWozDataset.from_txt_file(train_file, cache_path, '&', )
     dataloader = DataLoader(dataset, batch_size=5, shuffle=True, sampler=None,
                             collate_fn=partial(enc_dec_collate_fn, tokenizer=t5_tokenizer,
                                                max_intent_len=40, max_utter_len=60))

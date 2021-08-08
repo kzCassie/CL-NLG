@@ -21,10 +21,8 @@ def init_arg_parser():
 
     ### General configuration ###
     parser.add_argument("--seed", default=42, type=int, help="Random seed for initialization")
-    parser.add_argument("--mode", default="", type=str, choices=["train", "curriculum_train", "eval", "train_with_eval", "decode"],
+    parser.add_argument("--mode", default="", type=str, choices=["train", "decode", "eval"],
                         required=True, help="Choose the running mode for the script.")
-    # parser.add_argument("--evaluate_during_training", default=False, action="store_true",
-    #                     help="Evaluating during training")
 
     parser.add_argument("--model_type", choices=['gpt2', 'openai-gpt', 'bert', 'roberta', 'distilbert', 't5'],
                         default="bert", type=str, required=True, help="The model architecture to be initialized.")
@@ -35,33 +33,24 @@ def init_arg_parser():
 
     ### Cuda & Distributed Training ###
     parser.add_argument("--no_cuda", default=False, action='store_true', help="Do not use gpu")
-    # parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
-
-    # parser.add_argument("--per_gpu_train_batch_size", default=1, type=int,
-    #                     help="Batch size per GPU/CPU for training.")
-    # parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
-    #                     help="Number of updates steps to accumulate before performing a backward/update pass.")
-    # parser.add_argument("--per_gpu_eval_batch_size", default=1, type=int,
-    #                     help="Batch size per GPU/CPU for evaluation.")
 
     ### Training ###
     parser.add_argument("--train_data_file", default=None, type=str,
                         help="The input training data file (a text file).")
+    parser.add_argument("--train_tgt_file", default=None, type=str,
+                        help="The target training data file (a text file).")
     parser.add_argument("--output_dir", default=None, type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
-    # curriculum train
+    # Curriculum train
     parser.add_argument("--curriculum_name", default="NC", type=str, help="[NC, one_pass, baby_step]")
-    parser.add_argument("--curriculum_bucket_size", default=5, type=int, help="Num instances per curriculum bucket.")
+    parser.add_argument("--curriculum_num_bucket", default=5, type=int, help="Num of curriculum buckets.")
 
     # Training schedule details
     parser.add_argument("--train_batch_size", default=1, type=int, help="Training batch size of DataLoader")
     parser.add_argument("--train_patience", default=-1, type=int, help="Max epoch without improvements")
-    parser.add_argument("--valid_every_epoch", default=10, type=int,
-                        help="Perform validation. Only save model that is deemed better after each validation")
-
-
-
+    # parser.add_argument("--valid_every_epoch", default=10, type=int,
+    #                     help="Perform validation. Only save model that is deemed better after each validation")
 
     parser.add_argument("--block_size", default=80, type=int,
                         help="Optional input sequence length after tokenization."
@@ -83,53 +72,36 @@ def init_arg_parser():
     parser.add_argument("--warmup_steps", default=0, type=int,
                         help="Linear warmup over warmup_steps.")
 
-    # TODO: after modification, must keep all things together in model_path
-    # Load pre-train filepath
-    # parser.add_argument("--config_name", default="", type=str,
-    #                     help="Optional pretrained config name or path if not the same as model_name_or_path")
-    # parser.add_argument("--tokenizer_name", default="", type=str,
-    #                     help="Optional pretrained tokenizer name or path if not the same as model_name_or_path")
-    # parser.add_argument("--cache_dir", default="", type=str,
-    #                     help="Optional directory to store the pre-trained models downloaded from s3 "
-    #                          "(instead of the default one)")
-
-    ### Evaluating ###
-    parser.add_argument("--eval_data_file", default=None, type=str,
-                        help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
-    parser.add_argument("--eval_batch_size", default=1, type=int, help="Batch size for evaluation.")
-
+    ### Dev ###
+    parser.add_argument("--dev_data_file", default=None, type=str,
+                        help="An optional input evaluation data file to evaluate the perplexity on (a dev set).")
+    parser.add_argument("--dev_tgt_file", default=None, type=str)
+    parser.add_argument("--dev_batch_size", default=20, type=int, help="Batch size for validating.")
 
     ### Decoding ###
-    # TODO: write help strings
     parser.add_argument('--decode_input_file', type=str, default=None, help="File to be decoded")
+    parser.add_argument('--decode_tgt_file', type=str, default=None)
     parser.add_argument('--decode_output_file', type=str, default=None, help="Decoded utterance strings")
-    parser.add_argument('--decode_result_file', type=str, default=None, help="Decoding result file for metric values")
-    parser.add_argument("--decode_batch_size", default=1, type=int, help="Batch size for decoding.")
-    parser.add_argument("--top_k", type=int, default=0)
+    parser.add_argument("--decode_batch_size", default=20, type=int, help="Batch size for decoding.")
 
+    ### Evaluating ###
+    parser.add_argument('--eval_output_file', type=str, default=None, help="Decoded text file.")
+    parser.add_argument('--eval_tgt_file', type=str, default=None, help="Targeted utterances.")
 
-    parser.add_argument("--top_p", type=float, default=0.9)
-    parser.add_argument("--temperature", type=float, default=1.0, help="temperature of 0 implies greedy sampling")
+    # parser.add_argument("--top_k", type=int, default=0)
+    # parser.add_argument("--top_p", type=float, default=0.9)
+    # parser.add_argument("--temperature", type=float, default=1.0, help="temperature of 0 implies greedy sampling")
 
-    parser.add_argument("--prompt", type=str, default="")
-    parser.add_argument("--padding_text", type=str, default="")
-    parser.add_argument("--xlm_lang", type=str, default="", help="Optional language when used with the XLM model.")
-    parser.add_argument("--length", type=int, default=40)
-    parser.add_argument("--num_samples", type=int, default=1)
-    parser.add_argument("--repetition_penalty", type=float, default=1.0,
-                        help="primarily useful for CTRL model; in that case, use 1.2")
-
-    parser.add_argument('--stop_token', type=str, default=None, help="Token at which text generation is stopped")
-    parser.add_argument('--nc', type=int, default=1, help="number of sentence")
-    parser.add_argument("--use_token", action='store_true', help="")
+    # parser.add_argument("--length", type=int, default=40)
+    # parser.add_argument("--num_samples", type=int, default=1)
+    #
+    # parser.add_argument('--stop_token', type=str, default=None, help="Token at which text generation is stopped")
+    # parser.add_argument('--nc', type=int, default=1, help="number of sentence")
+    # parser.add_argument("--use_token", action='store_true', help="")
 
     ### Model configuration ###
-    parser.add_argument("--do_lower_case", default=False, action='store_true',
-                        help="Set this flag if you are using an uncased model.")
-    parser.add_argument("--mlm", default=False, action='store_true',
-                        help="Train with masked-language modeling loss instead of language modeling.")
-    parser.add_argument("--mlm_probability", type=float, default=0.15,
-                        help="Ratio of tokens to mask for masked language modeling loss")
+    # parser.add_argument("--do_lower_case", default=False, action='store_true',
+    #                     help="Set this flag if you are using an uncased model.")
 
     ### Data Processing ###
     # TODO: these options all related to data loading?
@@ -140,80 +112,42 @@ def init_arg_parser():
     parser.add_argument('--max_utter_len', default=60, type=int, help="Max utterance length (for EncDec model)")
     parser.add_argument('--max_len', default=80, type=int, help="Max raw sentence length (for LM model)")
 
+    # parser.add_argument('--text_chunk', default=False, action='store_true',
+    #                     help="Read the text data file in one chunk instead of reading it line by line")
+    # parser.add_argument('--use_reverse', default=False, action='store_true', help="")
+    # parser.add_argument('--with_code_loss', type=bool, default=True, help="")
+    # parser.add_argument('--use_tokenizer', default=False, action='store_true',
+    #                     help="Use pretrained tokenizer. If false, do a simple split by space")
+    # parser.add_argument("--max_seq", default=80, type=int,
+    #                     help="Max num tokens when loading text (including tokens for both code and utterance)")
 
-
-
-    parser.add_argument('--text_chunk', default=False, action='store_true',
-                        help="Read the text data file in one chunk instead of reading it line by line")
-    parser.add_argument('--use_reverse', default=False, action='store_true', help="")
-    parser.add_argument('--with_code_loss', type=bool, default=True, help="")
-    parser.add_argument('--use_tokenizer', default=False, action='store_true',
-                        help="Use pretrained tokenizer. If false, do a simple split by space")
-    parser.add_argument("--max_seq", default=80, type=int,
-                        help="Max num tokens when loading text (including tokens for both code and utterance)")
-
-    ### Logging and save ###
-    parser.add_argument('--logging_steps', type=int, default=100, help="Log every X updates steps.")
-    parser.add_argument('--save_steps', type=int, default=5000, help="Save checkpoint every X updates steps.")
-    parser.add_argument('--save_total_limit', type=int, default=None,
-                        help='Limit the total amount of checkpoints, delete the older checkpoints in the output_dir, '
-                             'does not delete by default')
-    parser.add_argument("--eval_all_checkpoints", default=False, action='store_true',
-                        help="Evaluate all checkpoints starting with the same prefix as model_name or model_path "
-                             "and ending with step number. When false, only evaluate the model in model_path")
+    # ### Logging and save ###
+    # parser.add_argument('--logging_steps', type=int, default=100, help="Log every X updates steps.")
+    # parser.add_argument('--save_steps', type=int, default=5000, help="Save checkpoint every X updates steps.")
+    # parser.add_argument('--save_total_limit', type=int, default=None,
+    #                     help='Limit the total amount of checkpoints, delete the older checkpoints in the output_dir, '
+    #                          'does not delete by default')
+    # parser.add_argument("--eval_all_checkpoints", default=False, action='store_true',
+    #                     help="Evaluate all checkpoints starting with the same prefix as model_name or model_path "
+    #                          "and ending with step number. When false, only evaluate the model in model_path")
     parser.add_argument('--overwrite_output_dir', default=False, action='store_true',
                         help="Overwrite the content of the output directory")
-
-    ### Precision ###
-    parser.add_argument('--fp16', default=False, action='store_true',
-                        help="Whether to use 16-bit (mixed) precision (through NVIDIA apex) instead of 32-bit")
-    parser.add_argument('--fp16_opt_level', type=str, default='O1',
-                        help="For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']."
-                             "See details at https://nvidia.github.io/apex/amp.html")
-
-    ### Distant debugging ###
-    parser.add_argument('--server_ip', type=str, default='', help="For distant debugging.")
-    parser.add_argument('--server_port', type=str, default='', help="For distant debugging.")
 
     return parser
 
 
 def check_config(parser):
     """ Perform sanity checks on command line parsed arguments"""
-    command_line = """--output_dir=saved_models/t5
-        --no_cuda
-        --mode train
-        --model_type=t5
-        --model_name=t5-base
-        --train_data_file=data/restaurant/train.txt 
-        --eval_data_file=data/restaurant/train.txt 
-        --num_train_epochs 5
-        --learning_rate 5e-5 
-        --use_tokenizer 
-        --overwrite_output_dir
-        --overwrite_cache
-        """
-
-    command_line2 = """
-                --no_cuda
-                --mode decode
-                --model_type=t5 \
-                --model_path=saved_models/t5 \
-                --num_samples 5 \
-                --decode_input_file=data/restaurant/test.txt \
-                --top_k 5 \
-                --decode_output_file=saved_models/t5/results.json \
-                --length 80
-                """
     args = parser.parse_args()
-    # args = parser.parse_args(command_line.split())
-    # args = parser.parse_args(command_line2.split())
 
     ### generic config ###
     set_seed(args.seed)
     args.enc_dec = True if args.model_type in ['t5'] else False
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', level=logging.INFO)
+
+    os.makedirs(f"{args.output_dir}/log", exist_ok=True)
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', level=logging.INFO,
+                        filename=f"{args.output_dir}/log/{args.mode}.log")
     logging.info("Processing with device: %s", args.device)
 
     # which pre-trained model to load
