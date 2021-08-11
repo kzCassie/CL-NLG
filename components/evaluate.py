@@ -4,8 +4,8 @@ import torch
 import logging
 from tqdm import tqdm
 
-from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.meteor_score import meteor_score
+from sacrebleu.metrics import BLEU
 import bleurt.score
 from common.utils import load_checkpoint
 from common.data import get_data_loader, get_comp_dataloader
@@ -42,9 +42,12 @@ def save_result(result, path):
     json.dump(result, open(path, 'w'), indent=2)
 
 
+##############################
+# Main func called in exp.py #
+##############################
 def evaluate_loss(args, model_class, tokenizer_class):
     model, tokenizer = load_checkpoint(args.output_dir, model_class, tokenizer_class)
-    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer)
+    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer, mode="dev")
     result = eval_checkpoint(eval_dataloader, len_eval_dataset, model, args, verbose=True)
     # save
     path = os.path.join(args.output_dir, "eval_results.txt")
@@ -58,13 +61,14 @@ def evaluate_output(args, output_file, tgt_file):
     dataloader, len_dataset = get_comp_dataloader(output_file, tgt_file)  # batch size=1
     bleu_scores, meteor_scores, bleurt_scores = [], [], []
 
+    bleu_scorer = BLEU()
     bleurt_scorer = bleurt.score.BleurtScorer()
     for batch in tqdm(dataloader, desc="Evaluating", total=len(dataloader)):
         output, target = batch
         output = output[0]
         target = target[0]
 
-        bleu_scores.append(sentence_bleu([output.split()], target.split()))
+        bleu_scores.append(bleu_scorer.sentence_score(output, [target]).score)
         meteor_scores.append(meteor_score([output], target))
         bleurt_scores.append(bleurt_scorer.score(references=[target], candidates=[output])[0])
 
@@ -86,7 +90,3 @@ def evaluate_output(args, output_file, tgt_file):
     json.dump(results, open(path, 'w'), indent=2)
     logging.info("Evaluation results saved to {}".format(path))
     return results
-
-
-
-

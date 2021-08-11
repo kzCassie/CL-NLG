@@ -12,7 +12,7 @@ class AbstractDataset(Dataset):
     self.intents (List[str]): Dialogue Act string (the part before '&').
     self.utterances (List[str]): Natural language utterances string (the part after '&').
     """
-    def __init__(self, intents=None, utterances=None, separator=""):
+    def __init__(self, intents=[], utterances=[], separator=""):
         self.separator = separator
         self.intents = intents
         self.utterances = utterances
@@ -28,6 +28,14 @@ class AbstractDataset(Dataset):
     def from_txt_file(input_path, cache_path, **kwargs):
         raise NotImplementedError("This method needs to be implemented.")
 
+    @staticmethod
+    def cache_file(dataset, input_path, cache_dir):
+        os.makedirs(cache_dir, exist_ok=True)
+        filename = os.path.splitext(os.path.basename(input_path))[0]
+        cache_path = os.path.join(cache_dir, filename + ".bin")
+        with open(cache_path, 'wb') as handle:
+            pickle.dump(dataset, handle)
+
     def __len__(self):
         return len(self.intents)
 
@@ -38,7 +46,7 @@ class AbstractDataset(Dataset):
 class FewShotWozDataset(AbstractDataset):
     """ FewShotWoz Dataset """
     @staticmethod
-    def from_txt_file(input_path, cache_path, separator='&', **kwargs):
+    def from_txt_file(input_path, cache_dir, separator='&', **kwargs):
         new_dataset = FewShotWozDataset()
         new_dataset.separator = separator
 
@@ -50,19 +58,15 @@ class FewShotWozDataset(AbstractDataset):
                 new_dataset.intents.append(code_str)
                 new_dataset.utterances.append(utter_str)
 
-        # save
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with open(cache_path, 'wb') as handle:
-            pickle.dump(new_dataset, handle)
-
-        # return
+        # cache
+        FewShotWozDataset.cache_file(new_dataset, input_path, cache_dir)
         return new_dataset
 
 
 class MultiwozSgdDataset(AbstractDataset):
     """ Multiwoz or SGD dataset """
     @staticmethod
-    def from_txt_file(input_path, cache_path, **kwargs):
+    def from_txt_file(input_path, cache_dir, **kwargs):
         new_dataset = MultiwozSgdDataset()
 
         # process src file
@@ -77,12 +81,8 @@ class MultiwozSgdDataset(AbstractDataset):
                 for line in f:
                     new_dataset.utterances.append(line.lower())
 
-        # save
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with open(cache_path, 'wb') as handle:
-            pickle.dump(new_dataset, handle)
-
-        # return
+        # cache
+        MultiwozSgdDataset.cache_file(new_dataset, input_path, cache_dir)
         return new_dataset
 
 
@@ -152,14 +152,16 @@ def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
 ###########################
 #  Construct DataLoader   #
 ###########################
-def get_dataset(data_file, tgt_file, data_cache_path=None, overwrite_cache=False):
+def get_dataset(data_file, tgt_file, data_cache_dir=None, overwrite_cache=False):
+    filename = os.path.splitext(os.path.basename(data_file))[0]
+    data_cache_path = os.path.join(data_cache_dir, filename + ".bin")
     if not overwrite_cache and os.path.exists(data_cache_path):
-        logging.info("Loading processed data from cached file %s", data_cache_path)
+        logging.info("Loading processed data from cached dir %s", data_cache_path)
         dataset = MultiwozSgdDataset.from_bin_file(data_cache_path)
     else:
         logging.info("Creating features from dataset file at %s. Caching to %s.",
-                     data_file, data_cache_path)
-        dataset = MultiwozSgdDataset.from_txt_file(data_file, data_cache_path, tgt_file=tgt_file)
+                     data_file, data_cache_dir)
+        dataset = MultiwozSgdDataset.from_txt_file(data_file, data_cache_dir, tgt_file=tgt_file)
     return dataset
 
 
@@ -198,7 +200,7 @@ def get_data_loader(args, tokenizer, mode):
     else:
         raise ValueError("Invalid args.mode")
 
-    dataset = get_dataset(data_file, tgt_file, args.data_cache_path, args.overwrite_cache)
+    dataset = get_dataset(data_file, tgt_file, args.data_cache_dir, args.overwrite_cache)
     sampler = sampler_class(dataset)
     collate_fn = get_collate_fn(args, tokenizer)
     dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, collate_fn=collate_fn, drop_last=False)

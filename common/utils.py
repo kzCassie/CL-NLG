@@ -42,13 +42,11 @@ def init_arg_parser():
     parser.add_argument("--output_dir", default=None, type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
-    # Curriculum train
-    parser.add_argument("--curriculum_name", default="NC", type=str, help="[NC, one_pass, baby_step]")
-    parser.add_argument("--curriculum_num_bucket", default=5, type=int, help="Num of curriculum buckets.")
-
     # Training schedule details
     parser.add_argument("--train_batch_size", default=1, type=int, help="Training batch size of DataLoader")
     parser.add_argument("--train_patience", default=-1, type=int, help="Max epoch without improvements")
+    parser.add_argument('--overwrite_output_dir', default=False, action='store_true',
+                        help="Overwrite the content of the output directory")
     # parser.add_argument("--valid_every_epoch", default=10, type=int,
     #                     help="Perform validation. Only save model that is deemed better after each validation")
 
@@ -71,6 +69,13 @@ def init_arg_parser():
     #                     help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
     parser.add_argument("--warmup_steps", default=0, type=int,
                         help="Linear warmup over warmup_steps.")
+
+    ### Curriculum ###
+    parser.add_argument("--curriculum_name", default="NC", type=str, help="[NC, one_pass, baby_step]")
+    parser.add_argument("--curriculum_num_bucket", default=5, type=int, help="Num of curriculum buckets.")
+
+
+
 
     ### Dev ###
     parser.add_argument("--dev_data_file", default=None, type=str,
@@ -107,7 +112,7 @@ def init_arg_parser():
     # TODO: these options all related to data loading?
     parser.add_argument('--overwrite_cache', default=False, action='store_true',
                         help="Overwrite the cached processed dataset for training and evaluation")
-    parser.add_argument('--data_cache_path', default="", type=str, help="Path to cache preprocessed data bin file")
+    parser.add_argument('--data_cache_dir', default="", type=str, help="Dir to cache preprocessed data bin file")
     parser.add_argument('--max_intent_len', default=40, type=int, help="Max intention length (for EncDec model)")
     parser.add_argument('--max_utter_len', default=60, type=int, help="Max utterance length (for EncDec model)")
     parser.add_argument('--max_len', default=80, type=int, help="Max raw sentence length (for LM model)")
@@ -130,9 +135,6 @@ def init_arg_parser():
     # parser.add_argument("--eval_all_checkpoints", default=False, action='store_true',
     #                     help="Evaluate all checkpoints starting with the same prefix as model_name or model_path "
     #                          "and ending with step number. When false, only evaluate the model in model_path")
-    parser.add_argument('--overwrite_output_dir', default=False, action='store_true',
-                        help="Overwrite the content of the output directory")
-
     return parser
 
 
@@ -145,6 +147,7 @@ def check_config(parser):
     args.enc_dec = True if args.model_type in ['t5'] else False
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # init logging
     os.makedirs(f"{args.output_dir}/log", exist_ok=True)
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', level=logging.INFO,
                         filename=f"{args.output_dir}/log/{args.mode}.log")
@@ -163,10 +166,7 @@ def check_config(parser):
         if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and not args.overwrite_output_dir:
             raise ValueError("Output directory ({}) already exists and is not empty. Use "
                              "--overwrite_output_dir to overcome.".format(args.output_dir))
-    if args.mode == 'eval':
-        pass
-    if args.mode == "decode":
-        pass
+        assert (args.dev_data_file is not None)
     return args
 
 

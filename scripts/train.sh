@@ -14,24 +14,24 @@ data_file_name="train.src"
 data_tgt_name="train.trg"
 dev_file_name="dev.src"
 dev_tgt_name="dev.trg"
-data_cache_dir=data_cached
 # input model
 model_name=t5-small
 # output model
-model_save_path=saved_models/t5-small/${curriculum_name}
+model_save_path=saved_models/sgd/${curriculum_name}
 
 ### hyper param ###
 seed=42
 epoch=500
-train_batch_size=20
+train_batch_size=128
+dev_batch_size=128
 lr=5e-5
 
 ## Do NOT modify
-train_data_file=${data_folder}/${domain}/${data_file_name}.txt
-train_tgt_file=${data_folder}/${domain}/${data_tgt_name}.txt
-dev_data_file=${data_folder}/${domain}/${dev_file_name}.txt
-dev_tgt_file=${data_folder}/${domain}/${dev_tgt_name}.txt
-data_cache_path=${data_cache_dir}/${data_folder}/${domain}/${data_file_name}.bin
+train_data_file=${data_folder}/${domain}/${data_file_name}
+train_tgt_file=${data_folder}/${domain}/${data_tgt_name}
+dev_data_file=${data_folder}/${domain}/${dev_file_name}
+dev_tgt_file=${data_folder}/${domain}/${dev_tgt_name}
+data_cache_dir=data_cached/${data_folder}/${domain}/
 output_dir=${model_save_path}/${domain}
 
 
@@ -48,12 +48,11 @@ python exp.py \
     --dev_data_file ${dev_data_file} \
     --dev_tgt_file ${dev_tgt_file} \
     --dev_batch_size 20 \
-    --data_cache_path ${data_cache_path} \
+    --data_cache_dir ${data_cache_dir} \
     --num_train_epochs ${epoch} \
     --train_batch_size ${train_batch_size} \
+    --dev_batch_size ${dev_batch_size} \
     --learning_rate ${lr} \
     --train_patience 10 \
-    --valid_every_epoch 10 \
     --overwrite_output_dir \
-    --overwrite_cache
-#--eval_data_file data/${domain}/train.txt \
+#    --overwrite_cache

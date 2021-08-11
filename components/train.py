@@ -10,11 +10,7 @@ from common.curriculum import BucketCurriculum, intent_slot_score_fn
 from components.evaluate import eval_checkpoint
 
 
-def train_with_dataloader(args, train_dataloader, model, tokenizer):
-    # eval during training
-    assert(args.dev_data_file is not None)
-    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer, mode='dev')
-
+def train_with_dataloader(args, train_dataloader, model, tokenizer, eval_dataloader, len_eval_dataset):
     # steps
     t_total = len(train_dataloader) * args.num_train_epochs
 
@@ -33,7 +29,7 @@ def train_with_dataloader(args, train_dataloader, model, tokenizer):
     for e in trange(int(args.num_train_epochs), desc="Epoch"):
         running_loss, running_ex = 0.0, 0  # accumulated loss of each epoch
         for step, batch in enumerate(train_dataloader):
-            # logging.info(f"  PROGRESS: {float(global_step) / t_total * 100:.2f}%")
+            logging.info(f"  PROGRESS: {float(global_step) / t_total * 100:.2f}%")
 
             inputs, labels = batch
             inputs = inputs.to(args.device)
@@ -105,8 +101,10 @@ def train_without_curriculum(args, model, tokenizer):
     logging.info("  Num examples = %d", len_train_dataset)
     logging.info("  Num Epochs = %d", args.num_train_epochs)
     logging.info("  Training batch size = %d", args.train_batch_size)
+
+    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer, mode='dev')
     model, best_epoch_loss, batch_losses, batch_ex_seen, epoch_losses, epoch_ex_seen, eval_losses \
-        = train_with_dataloader(args, train_dataloader, model, tokenizer)
+        = train_with_dataloader(args, train_dataloader, model, tokenizer, eval_dataloader, len_eval_dataset)
     logging.info("  Loss = %.4f", best_epoch_loss)
 
     # save history
@@ -124,7 +122,7 @@ def train_without_curriculum(args, model, tokenizer):
 
 def train_bucket_curriculum(args, model, tokenizer, score_fn):
     # data
-    dataset = get_dataset(args.train_data_file, args.data_cache_path, args.overwrite_cache)
+    dataset = get_dataset(args.train_data_file, args.data_cache_dir, args.overwrite_cache)
     curriculums = BucketCurriculum(dataset, score_fn)\
         .get_curriculum(num_bucket=args.curriculum_num_bucket, batch_size=args.train_batch_size,
                         name=args.curriculum_name, collate_fn=get_collate_fn(args, tokenizer))
@@ -134,6 +132,7 @@ def train_bucket_curriculum(args, model, tokenizer, score_fn):
     logging.info("  Training batch size = %d", args.train_batch_size)
     logging.info("  Max Epochs Per Curriculum = %d", args.num_train_epochs)
 
+    eval_dataloader, len_eval_dataset = get_data_loader(args, tokenizer, mode='dev')
     batch_losses, batch_ex_seen, epoch_losses, epoch_ex_seen, eval_losses = [], [], [], [], []
     best_epoch_loss = float('inf')
     for idx, curriculum in enumerate(curriculums):
@@ -142,7 +141,8 @@ def train_bucket_curriculum(args, model, tokenizer, score_fn):
         logging.info("  Num examples = %d", len_curriculum_dataset)
 
         model, curr_best_epoch_loss, curr_batch_losses, curr_batch_ex_seen, curr_epoch_losses, curr_epoch_ex_seen, \
-            curr_eval_losses = train_with_dataloader(args, curriculum_dataloader, model, tokenizer)
+            curr_eval_losses = train_with_dataloader(args, curriculum_dataloader, model, tokenizer,
+                                                     eval_dataloader, len_eval_dataset)
         best_epoch_loss = min(best_epoch_loss, curr_best_epoch_loss)
         logging.info("  Loss = %.4f", best_epoch_loss)
 
