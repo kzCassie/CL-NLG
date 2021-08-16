@@ -1,0 +1,558 @@
+flights | request ( origin )
+flights | offer ( airlines = delta airlines ) | offer ( outbound departure time = 4:20 pm ) | offer ( number stops = 0 ) | offer ( fare = $ 197 )
+flights | inform ( origin airport = hartsfield-jackson international airport )
+flights | req more
+flights | goodbye
+calendar | request ( event date )
+calendar | offer ( event name = buddy guy concert ) | offer ( event time = 5 pm )
+calendar | offer ( event name = movie show ) | offer ( event time = 7 pm )
+calendar | notify failure | req more
+calendar | offer ( event name = dermatologist appointment with bernard recht , ph.d. , m.d . ) | offer ( event time = 10:30 am )
+calendar | offer ( available start time = 8 am ) | offer ( available end time = 10:30 am ) | inform count ( count = 3 )
+calendar | goodbye
+calendar | request ( event date )
+calendar | offer ( event name = movie at amc brentwood 14 ) | offer ( event time = 10 pm )
+calendar | req more
+calendar | offer ( event date = march 12th ) | offer ( available start time = 8 am ) | offer ( available end time = 1:30 pm ) | inform count ( count = 1 )
+calendar | goodbye
+music | offer ( song name = drive ) | offer ( artist = joe bonamassa ) | offer ( album = blues of desperation )
+music | inform ( genre = blues )
+music | confirm ( song name = drive ) | confirm ( playback device = tv )
+music | notify success
+music | goodbye
+calendar | offer ( event date = next wednesday ) | offer ( available start time = 4:30 pm ) | offer ( available end time = midnight )
+calendar | offer ( event date = march 9th ) | offer ( available start time = 8 am ) | offer ( available end time = 1 pm )
+calendar | req more
+calendar | request ( event location ) | request ( event time ) | request ( event name )
+calendar | confirm ( event name = movie booking for long shot ) | confirm ( event date = march 9th ) | confirm ( event location = 2508 ) | confirm ( event time = 9:45 am )
+calendar | notify success
+calendar | req more
+calendar | goodbye
+calendar | offer ( available start time = 8 am ) | offer ( available end time = 2:30 pm ) | inform count ( count = 3 )
+calendar | offer ( available start time = 3 pm ) | offer ( available end time = 4:30 pm ) | inform count ( count = 2 )
+calendar | offer ( available start time = 5 pm ) | offer ( available end time = 12 pm )
+calendar | offer intent ( addevent )
+calendar | request ( event location ) | request ( event name ) | request ( event time )
+calendar | confirm ( event name = baseball game ) | confirm ( event date = next friday ) | confirm ( event location = 1500 south capitol street southeast ) | confirm ( event time = 7:30 pm )
+calendar | notify success
+calendar | goodbye
+calendar | offer ( available start time = 8 am ) | offer ( available end time = 12 pm ) | inform count ( count = 4 )
+calendar | offer ( available start time = 2 pm ) | offer ( available end time = 2:30 pm ) | inform count ( count = 3 )
+calendar | offer ( available start time = 3:30 pm ) | offer ( available end time = 5 pm )
+calendar | offer intent ( addevent )
+calendar | request ( event name ) | request ( event time ) | request ( event location )
+calendar | confirm ( event name = property viewing ) | confirm ( event date = march 14th ) | confirm ( event location = 49 gold mine drive ) | confirm ( event time = 11:30 am )
+calendar | notify success
+calendar | req more
+calendar | goodbye
+ridesharing | request ( destination ) | request ( number of seats )
+ridesharing | confirm ( destination = sonoma ave , # 44 , 1820 doctors park drive ) | confirm ( number of seats = 2 ) | confirm ( ride type = pool )
+ridesharing | inform ( ride fare = $ 15.25 ) | inform ( wait time = 7 ) | notify success
+ridesharing | req more
+ridesharing | goodbye
+ridesharing | request ( number of seats ) | request ( destination ) | request ( ride type )
+ridesharing | confirm ( destination = sushi lover ) | confirm ( number of seats = 1 ) | confirm ( ride type = regular )
+ridesharing | confirm ( destination = 2510 shattuck avenue ) | confirm ( ride type = luxury )
+ridesharing | notify success
+ridesharing | inform ( ride fare = $ 15.56 ) | inform ( wait time = 12 )
+ridesharing | goodbye
+ridesharing | request ( ride type )
+ridesharing | request ( destination )
+ridesharing | confirm ( destination = greentree apartments ) | confirm ( number of seats = 1 ) | confirm ( ride type = luxury )
+ridesharing | notify success
+ridesharing | goodbye
+ridesharing | request ( number of seats )
+ridesharing | confirm ( destination = 1178 el camino real ) | confirm ( number of seats = 2 ) | confirm ( ride type = luxury )
+ridesharing | inform ( wait time = 8 ) | notify success
+ridesharing | req more
+ridesharing | goodbye
+ridesharing | request ( destination ) | request ( shared ride )
+ridesharing | request ( shared ride )
+ridesharing | confirm ( destination = museo del caracol ) | confirm ( number of riders = 2 ) | confirm ( shared ride = true )
+ridesharing | confirm ( number of riders = 3 ) | confirm ( shared ride = true )
+ridesharing | inform ( ride fare = $ 22.19 ) | inform ( approximate ride duration = 17 ) | notify success
+ridesharing | req more
+ridesharing | goodbye
+hotels | request ( where to )
+hotels | request ( check out date ) | request ( number of adults )
+hotels | confirm ( where to = chicago ) | confirm ( number of adults = 3 ) | confirm ( check in date = day after tomorrow ) | confirm ( check out date = march 14th )
+hotels | confirm ( where to = paris ) | confirm ( check out date = march 14th )
+hotels | inform ( rating = 3.5 ) | inform ( has laundry service = true ) | notify success
+hotels | goodbye
+rentalcars | request ( dropoff date )
+rentalcars | request ( pickup date ) | request ( pickup city )
+rentalcars | offer ( pickup location = sacramento valley station ) | offer ( pickup date = next thursday ) | offer ( type = standard ) | offer ( car name = camry )
+rentalcars | offer ( pickup location = charles de gaulle international airport ) | offer ( pickup date = next thursday ) | offer ( type = standard ) | offer ( car name = prius ) | inform count ( count = 1 )
+rentalcars | inform ( total price = $ 245 )
+rentalcars | offer intent ( reservecar )
+rentalcars | confirm ( pickup location = charles de gaulle international airport ) | confirm ( pickup date = next thursday ) | confirm ( pickup time = 5 pm ) | confirm ( dropoff date = march 14th ) | confirm ( type = standard )
+rentalcars | notify success
+rentalcars | req more
+rentalcars | goodbye
+rentalcars | request ( pickup date ) | request ( dropoff date )
+rentalcars | request ( pickup city )
+rentalcars | offer ( pickup location = heathrow international airport ) | offer ( pickup date = day after tomorrow ) | offer ( type = standard ) | offer ( car name = prius )
+rentalcars | inform ( total price = $ 170 )
+rentalcars | notify failure | req more
+rentalcars | offer ( pickup location = heathrow international airport ) | offer ( pickup date = day after tomorrow ) | offer ( type = compact ) | offer ( car name = fit ) | inform count ( count = 2 )
+rentalcars | inform ( total price = $ 150 )
+rentalcars | confirm ( pickup location = heathrow international airport ) | confirm ( pickup date = day after tomorrow ) | confirm ( pickup time = 12 pm ) | confirm ( dropoff date = next friday ) | confirm ( type = compact )
+rentalcars | notify success
+rentalcars | goodbye
+rentalcars | request ( pickup time ) | request ( pickup date )
+rentalcars | request ( dropoff date ) | request ( pickup city )
+rentalcars | offer ( pickup location = union station ) | offer ( pickup date = next tuesday ) | offer ( type = standard ) | offer ( car name = accord ) | inform count ( count = 3 )
+rentalcars | offer ( pickup location = dulles international airport ) | offer ( pickup date = next tuesday ) | offer ( type = compact ) | offer ( car name = bolt ) | inform count ( count = 7 )
+rentalcars | offer ( pickup location = dulles international airport ) | offer ( pickup date = next tuesday ) | offer ( type = standard ) | offer ( car name = camry )
+rentalcars | confirm ( pickup location = dulles international airport ) | confirm ( pickup date = next tuesday ) | confirm ( pickup time = 6:30 pm ) | confirm ( dropoff date = march 10th ) | confirm ( type = standard )
+rentalcars | notify success
+rentalcars | inform ( total price = $ 200 )
+rentalcars | goodbye
+homes | request ( area ) | request ( number of beds )
+homes | offer ( property name = 888 golden saratoga-cupertino apartment homes ) | offer ( address = 1546 maurice lane ) | offer ( number of beds = 2 ) | offer ( number of baths = 1 ) | offer ( rent = 2300 )
+homes | inform ( phone number = 408-818-0710 ) | inform ( pets allowed = false )
+homes | offer intent ( schedulevisit )
+homes | confirm ( property name = 888 golden saratoga-cupertino apartment homes ) | confirm ( visit date = march 10th )
+homes | confirm ( property name = 888 golden saratoga-cupertino apartment homes ) | confirm ( visit date = today )
+homes | inform ( furnished = false ) | notify success
+homes | goodbye
+homes | request ( number of beds )
+homes | offer ( property name = courtyard terrace ) | offer ( address = 4200 appian way ) | offer ( number of beds = 2 ) | offer ( number of baths = 1 ) | offer ( rent = 4100 ) | inform count ( count = 4 )
+homes | offer intent ( schedulevisit )
+homes | request ( visit date )
+homes | confirm ( property name = courtyard terrace ) | confirm ( visit date = march 13th )
+homes | confirm ( property name = courtyard terrace ) | confirm ( visit date = march 9th )
+homes | notify success
+homes | goodbye
+banks | offer ( balance = $ 8,903.46 ) | offer ( account type = savings )
+banks | offer ( balance = $ 1,907.72 ) | offer ( account type = checking )
+banks | offer intent ( transfermoney )
+banks | request ( recipient account name ) | request ( amount )
+banks | confirm ( account type = checking ) | confirm ( amount = $ 1,290 ) | confirm ( recipient account name = xiaoxue ) | confirm ( recipient account type = checking )
+banks | notify success
+banks | offer ( balance = $ 617.72 ) | offer ( account type = checking )
+banks | req more
+banks | goodbye
+banks | request ( account type )
+banks | offer ( balance = $ 22,494.33 ) | offer ( account type = checking )
+banks | offer ( balance = $ 1,230.19 ) | offer ( account type = savings )
+banks | offer intent ( transfermoney )
+banks | request ( recipient account name )
+banks | confirm ( account type = savings ) | confirm ( amount = $ 600 ) | confirm ( recipient account name = xiaoxue ) | confirm ( recipient account type = checking )
+banks | notify success
+banks | offer ( balance = $ 630.19 ) | offer ( account type = savings )
+banks | goodbye
+banks | offer ( balance = $ 9,478.68 ) | offer ( account type = savings )
+banks | offer ( balance = $ 20,638.21 ) | offer ( account type = checking )
+banks | request ( recipient account name ) | request ( amount )
+banks | confirm ( account type = checking ) | confirm ( amount = $ 1,650 ) | confirm ( recipient account name = maria ) | confirm ( recipient account type = savings )
+banks | notify success
+banks | offer ( balance = $ 18,988.21 ) | offer ( account type = checking )
+banks | req more
+banks | goodbye
+banks | request ( account type )
+banks | offer ( balance = $ 24,453.75 ) | offer ( account type = savings )
+banks | offer ( balance = $ 6,321.86 ) | offer ( account type = checking )
+banks | request ( recipient account name )
+banks | request ( amount )
+banks | confirm ( account type = checking ) | confirm ( amount = $ 1,730 ) | confirm ( recipient account name = xiaoxue ) | confirm ( recipient account type = savings )
+banks | notify success
+banks | offer ( balance = $ 4,591.86 ) | offer ( account type = checking )
+banks | goodbye
+banks | offer ( balance = $ 1,305.32 ) | offer ( account type = checking )
+banks | offer ( balance = $ 9,886.52 ) | offer ( account type = savings ) | inform count ( count = 1 )
+banks | offer intent ( transfermoney )
+banks | request ( recipient account name )
+banks | confirm ( account type = savings ) | confirm ( amount = $ 1,700 ) | confirm ( recipient account name = raghav ) | confirm ( recipient account type = savings )
+banks | notify success
+banks | offer ( balance = $ 8,186.52 ) | offer ( account type = savings )
+banks | goodbye
+services | request ( city )
+services | offer ( dentist name = apple dental practice ) | offer ( city = mountain view ) | inform count ( count = 10 )
+services | offer intent ( bookappointment )
+services | req more
+services | goodbye
+hotels | request ( where to )
+hotels | offer ( address = 10044 pacific mesa boulevard ) | offer ( rating = 4.5 )
+hotels | offer ( address = 1047 fifth avenue ) | offer ( rating = 4.1 )
+hotels | offer ( address = 10 east thomas road ) | offer ( rating = 4.1 )
+hotels | offer intent ( bookhouse )
+hotels | request ( check in date )
+hotels | confirm ( where to = phoenix ) | confirm ( number of adults = 1 ) | confirm ( check in date = tomorrow ) | confirm ( check out date = next thursday )
+hotels | confirm ( check in date = tomorrow ) | confirm ( check out date = march 13th )
+hotels | confirm ( where to = phoenix ) | confirm ( check in date = next monday )
+hotels | inform ( phone number = +1 602-222-1111 ) | notify success
+hotels | req more
+hotels | goodbye
+hotels | request ( where to )
+hotels | offer ( address = 1 logan square ) | offer ( rating = 4.4 ) | inform count ( count = 10 )
+hotels | offer intent ( bookhouse )
+hotels | confirm ( where to = philadelphia ) | confirm ( number of adults = 1 ) | confirm ( check in date = tomorrow ) | confirm ( check out date = march 11th )
+hotels | confirm ( number of adults = 1 ) | confirm ( check out date = march 12th )
+hotels | notify failure | req more
+hotels | confirm ( where to = philadelphia ) | confirm ( number of adults = 1 ) | confirm ( check in date = next tuesday ) | confirm ( check out date = march 12th )
+hotels | notify success
+hotels | goodbye
+hotels | request ( where to )
+hotels | offer ( address = 1 south franklin street ) | offer ( rating = 4.4 ) | inform count ( count = 10 )
+hotels | inform ( phone number = +1 312-558-1020 )
+hotels | inform ( total price = 1254 )
+hotels | request ( check out date )
+hotels | confirm ( where to = chicago ) | confirm ( number of adults = 2 ) | confirm ( check in date = tomorrow ) | confirm ( check out date = march 13th )
+hotels | notify success
+hotels | inform ( has laundry service = false )
+hotels | goodbye
+media | request ( title )
+media | confirm ( title = supa modo ) | confirm ( subtitles = false )
+media | confirm ( title = green book ) | confirm ( subtitles = false )
+media | notify success
+media | inform ( directed by = peter farrelly )
+media | goodbye
+media | confirm ( title = long shot ) | confirm ( subtitles = false )
+media | confirm ( title = sunset ) | confirm ( subtitles = false )
+media | confirm ( title = sunset ) | confirm ( subtitles = true )
+media | inform ( directed by = laszlo nemes ) | inform ( genre = drama ) | notify success
+media | goodbye
+buses | request ( from location )
+buses | request ( to location )
+buses | offer ( leaving time = 7:40 am ) | offer ( fare = $ 28 ) | offer ( transfers = 0 )
+buses | offer ( leaving time = 7:50 am ) | offer ( fare = $ 28 ) | offer ( transfers = 0 )
+buses | goodbye
+music | offer ( song name = sucker ) | offer ( artist = jonas brothers ) | offer ( album = happiness begins )
+music | notify failure | req more
+music | offer ( song name = be alright ) | offer ( artist = ariana grande ) | offer ( album = dangerous woman )
+music | inform ( genre = pop )
+music | confirm ( song name = be alright ) | confirm ( playback device = kitchen speaker )
+music | notify success
+music | req more
+music | goodbye
+events | request ( event name )
+events | offer ( date = tomorrow ) | offer ( event name = padres vs orioles ) | offer ( venue = petco park ) | inform count ( count = 7 )
+events | inform ( venue address = 100 park boulevard ) | inform ( time = 5 pm )
+events | offer ( date = today ) | offer ( event name = freestyle love supreme ) | offer ( venue = family theater )
+events | offer intent ( buyeventtickets )
+events | request ( number of tickets )
+events | confirm ( event name = freestyle love supreme ) | confirm ( number of tickets = 1 ) | confirm ( date = today ) | confirm ( city = washington d.c . )
+events | confirm ( number of tickets = 2 ) | confirm ( city = washington d.c . )
+events | inform ( venue address = 2700 f street northwest , washington , district of columbia 20566 , united states ) | inform ( time = 5 pm ) | notify success
+events | goodbye
+buses | request ( leaving date ) | request ( from location ) | request ( to location )
+buses | offer ( leaving time = 6:30 am ) | offer ( fare = $ 11 ) | offer ( transfers = 0 ) | inform count ( count = 10 )
+buses | inform ( to station = downtown station ) | inform ( from station = union station )
+buses | offer ( leaving time = 6:40 am ) | offer ( fare = $ 10 ) | offer ( transfers = 0 ) | inform count ( count = 9 )
+buses | offer ( leaving time = 7 am ) | offer ( fare = $ 12 ) | offer ( transfers = 0 )
+buses | confirm ( from location = los angeles ) | confirm ( to location = long beach ) | confirm ( leaving date = march 13th ) | confirm ( leaving time = 7 am ) | confirm ( travelers = 4 )
+buses | notify success
+buses | goodbye
+services | request ( city )
+services | offer ( dentist name = bay area kids dentist ) | offer ( city = morgan hill )
+services | offer ( dentist name = la clinica de la raza ) | offer ( city = pittsburg ) | inform count ( count = 2 )
+services | inform ( phone number = 925-431-1252 )
+services | inform ( offers cosmetic services = false ) | inform ( address = 337 east leland road )
+services | offer ( dentist name = pineda lady f ) | offer ( city = pittsburg )
+services | offer intent ( bookappointment )
+services | request ( appointment date )
+services | confirm ( dentist name = pineda lady f ) | confirm ( appointment time = 1 pm ) | confirm ( appointment date = next monday )
+services | confirm ( appointment time = 1 pm ) | confirm ( appointment date = next friday )
+services | notify failure | req more
+services | confirm ( dentist name = pineda lady f ) | confirm ( appointment time = 12 pm ) | confirm ( appointment date = next friday )
+services | notify failure | req more
+services | goodbye
+events | request ( city )
+events | offer ( event name = amber run brooklyn ) | offer ( venue = warsaw ) | inform count ( count = 10 )
+events | offer intent ( buyeventtickets )
+events | req more
+events | offer ( date = tomorrow ) | offer ( event name = amber run brooklyn ) | offer ( venue = warsaw ) | inform count ( count = 6 )
+events | inform ( venue address = 261 driggs avenue , brooklyn ) | inform ( time = 5 pm )
+events | confirm ( event name = amber run brooklyn ) | confirm ( number of tickets = 3 ) | confirm ( date = tomorrow ) | confirm ( city = new york )
+events | notify success
+events | req more
+events | goodbye
+movies | request ( location )
+movies | offer ( movie name = captain marvel ) | offer ( movie name 1 = dumbo ) | offer ( movie name 2 = hellboy )
+movies | offer intent ( buymovietickets )
+movies | request ( show date )
+movies | offer ( show time = 10 pm ) | offer ( theater name = united artists berkeley 7 ) | inform count ( count = 1 )
+movies | req more
+movies | goodbye
+buses | request ( destination ) | request ( origin ) | request ( departure date )
+buses | offer ( departure time = 9 am ) | offer ( price = $ 38 ) | offer ( fare type = economy ) | inform count ( count = 9 )
+buses | offer ( departure time = 6:40 am ) | offer ( price = $ 12 ) | offer ( fare type = economy ) | inform count ( count = 10 )
+buses | offer ( departure time = 7:40 am ) | offer ( price = $ 10 ) | offer ( fare type = economy )
+buses | inform ( destination station name = union station ) | inform ( origin station name = downtown station )
+buses | offer intent ( buybusticket )
+buses | confirm ( origin = long beach ) | confirm ( destination = los angeles ) | confirm ( departure date = march 12th ) | confirm ( departure time = 7:40 am ) | confirm ( group size = 2 ) | confirm ( fare type = economy )
+buses | notify success
+buses | req more
+buses | goodbye
+buses | request ( origin ) | request ( departure date ) | request ( destination )
+buses | offer ( departure time = 10:20 am ) | offer ( price = $ 81 ) | offer ( fare type = economy ) | inform count ( count = 8 )
+buses | inform ( destination station name = santa fe depot ) | inform ( origin station name = sacramento valley station )
+buses | offer intent ( buybusticket )
+buses | confirm ( origin = sacramento ) | confirm ( destination = san diego ) | confirm ( departure date = march 10th ) | confirm ( departure time = 10:20 am ) | confirm ( group size = 2 ) | confirm ( fare type = economy )
+buses | confirm ( group size = 3 ) | confirm ( fare type = economy )
+buses | notify success
+buses | req more
+buses | goodbye
+buses | request ( from location )
+buses | request ( to location ) | request ( leaving date )
+buses | offer ( leaving time = 7:40 am ) | offer ( fare = $ 76 ) | offer ( transfers = 1 ) | inform count ( count = 8 )
+buses | inform ( from station = sacramento valley station )
+buses | request ( travelers )
+buses | confirm ( from location = sacramento ) | confirm ( to location = anaheim ) | confirm ( leaving date = next tuesday ) | confirm ( leaving time = 7:40 am ) | confirm ( travelers = 4 )
+buses | inform ( to station = anaheim intermodal center ) | notify success
+buses | goodbye
+media | request ( genre )
+media | offer ( title = after ) | offer ( title 1 = pillow talk ) | offer ( title 2 = say anything )
+media | offer ( title = dumbo ) | offer ( title 1 = hellboy ) | offer ( title 2 = mad max : fury road ) | inform count ( count = 4 )
+media | offer ( title = penguin highway )
+media | offer intent ( playmovie )
+media | confirm ( title = penguin highway ) | confirm ( subtitles = false )
+media | confirm ( title = penguin highway ) | confirm ( subtitles = true )
+media | notify success
+media | goodbye
+services | request ( appointment time )
+services | confirm ( doctor name = dr. randal pham at aesthetic & refractive surgery medical center ) | confirm ( appointment time = 4 pm ) | confirm ( appointment date = next thursday )
+services | notify success
+services | goodbye
+flights | request ( departure date )
+flights | request ( destination city ) | request ( origin city )
+flights | request ( return date )
+flights | offer ( airlines = american airlines ) | offer ( outbound departure time = 12:30 pm ) | offer ( inbound departure time = 5:25 am ) | offer ( price = $ 136 )
+flights | offer ( airlines = delta airlines ) | offer ( outbound departure time = 9:15 am ) | offer ( inbound departure time = 6 am ) | offer ( price = $ 125 )
+flights | offer ( airlines = southwest airlines ) | offer ( outbound departure time = 9:50 pm ) | offer ( inbound departure time = 4:20 am ) | offer ( price = $ 141 )
+flights | inform ( refundable = true )
+flights | offer intent ( reserveroundtripflights )
+flights | req more
+flights | goodbye
+movies | request ( location )
+movies | offer ( movie name = captain marvel ) | offer ( movie name 1 = dumbo ) | offer ( movie name 2 = hellboy ) | inform count ( count = 7 )
+movies | offer ( movie name = long shot ) | offer ( movie name 1 = missing link ) | offer ( movie name 2 = pet sematary )
+movies | offer ( movie name = hotel mumbai ) | offer ( movie name 1 = little )
+movies | request ( show date )
+movies | offer ( show time = 4:30 pm ) | offer ( theater name = century 16 downtown ) | inform count ( count = 1 )
+movies | inform ( genre = thriller )
+movies | goodbye
+movies | request ( location )
+movies | offer ( movie name = after ) | offer ( movie name 1 = breakthrough ) | offer ( movie name 2 = captain marvel )
+movies | offer ( movie name = shazam ! ) | inform count ( count = 1 )
+movies | offer intent ( buymovietickets )
+movies | request ( show date )
+movies | offer ( show time = 4 pm ) | offer ( theater name = livermore 13 cinema )
+movies | offer ( show time = 9 pm ) | offer ( theater name = livermore 13 cinema ) | inform count ( count = 1 )
+movies | inform ( price = 24 )
+movies | inform ( street address = 2490 first street )
+movies | goodbye
+flights | request ( origin city )
+flights | request ( departure date ) | request ( destination city )
+flights | offer ( airlines = american airlines ) | offer ( outbound departure time = 8:15 am ) | offer ( number stops = 1 ) | offer ( price = $ 432 )
+flights | offer ( airlines = delta airlines ) | offer ( outbound departure time = 8:45 am ) | offer ( number stops = 1 ) | offer ( price = $ 426 )
+flights | inform ( outbound arrival time = 11:18 am ) | inform ( origin airport = seattle-tacoma international airport )
+flights | offer ( airlines = southwest airlines ) | offer ( outbound departure time = 5:25 am ) | offer ( number stops = 1 ) | offer ( price = $ 384 )
+flights | req more
+flights | confirm ( origin city = seattle ) | confirm ( destination city = paris ) | confirm ( airlines = southwest airlines ) | confirm ( departure date = next friday ) | confirm ( seating class = economy ) | confirm ( passengers = 1 )
+flights | inform ( outbound arrival time = 7:58 am ) | inform ( origin airport = seattle-tacoma international airport ) | notify success
+flights | req more
+flights | goodbye
+flights | request ( departure date ) | request ( destination city ) | request ( origin city )
+flights | offer ( airlines = alaska airlines ) | offer ( outbound departure time = 9:30 am ) | offer ( number stops = 1 ) | offer ( price = $ 277 ) | inform count ( count = 4 )
+flights | offer ( airlines = delta airlines ) | offer ( outbound departure time = 4 am ) | offer ( number stops = 1 ) | offer ( price = $ 258 )
+flights | offer intent ( reserveonewayflight )
+flights | confirm ( origin city = los angeles ) | confirm ( destination city = toronto ) | confirm ( airlines = delta airlines ) | confirm ( departure date = today ) | confirm ( passengers = 1 ) | confirm ( seating class = economy )
+flights | notify success
+flights | inform ( destination airport = toronto pearson international airport ) | inform ( refundable = false )
+flights | req more
+flights | goodbye
+media | request ( title )
+media | confirm ( title = hellboy ) | confirm ( subtitles = false )
+media | inform ( directed by = neil marshall ) | notify success
+media | goodbye
+restaurants | request ( time ) | request ( city )
+restaurants | request ( restaurant name )
+restaurants | confirm ( restaurant name = walia ) | confirm ( city = san jose ) | confirm ( time = 1:15 pm ) | confirm ( date = march 14th ) | confirm ( party size = 2 )
+restaurants | confirm ( time = 7:30 pm ) | confirm ( party size = 2 )
+restaurants | notify success
+restaurants | inform ( phone number = 408-645-5001 )
+restaurants | goodbye
+events | request ( city of event )
+events | request ( category )
+events | offer ( event name = bryan adams ) | offer ( event location = theater of the clouds ) | offer ( date = tomorrow ) | offer ( time = 8:30 pm )
+events | offer ( event name = cody johnson ) | offer ( event location = flamingo lot ) | offer ( date = next wednesday ) | offer ( time = 7 pm )
+events | inform ( subcategory = country )
+events | confirm ( event name = cody johnson ) | confirm ( number of seats = 3 ) | confirm ( date = next wednesday ) | confirm ( city of event = seattle )
+events | inform ( address of location = 5500 phinney avenue north ) | notify success
+events | req more
+events | goodbye
+music | offer ( song name = cirice ) | offer ( artist = ghost ) | offer ( album = meliora ) | inform count ( count = 10 )
+music | offer ( song name = wonderful life ) | offer ( artist = hurts ) | offer ( album = happiness )
+music | offer intent ( playmedia )
+music | confirm ( song name = wonderful life ) | confirm ( playback device = tv )
+music | confirm ( song name = wonderful life ) | confirm ( playback device = kitchen speaker )
+music | confirm ( song name = wonderful life ) | confirm ( playback device = bedroom speaker )
+music | notify success
+music | req more
+music | goodbye
+music | offer ( song name = adorn ) | offer ( artist = miguel ) | offer ( album = kaleidoscope dream ) | inform count ( count = 10 )
+music | confirm ( song name = adorn ) | confirm ( playback device = kitchen speaker )
+music | notify success
+music | req more
+music | goodbye
+music | offer ( song name = annie ) | offer ( artist = connar moon ) | offer ( album = oxford ) | inform count ( count = 1 )
+music | inform ( year = 2018 ) | inform ( genre = folk )
+music | confirm ( song name = annie ) | confirm ( playback device = tv )
+music | notify success
+music | goodbye
+movies | request ( location )
+movies | offer ( movie name = the curse of la llorona ) | inform count ( count = 1 )
+movies | offer intent ( buymovietickets )
+movies | request ( show date )
+movies | offer ( show time = 9:30 pm ) | offer ( theater name = century cinema 16 )
+movies | notify failure | req more
+movies | goodbye
+movies | request ( location )
+movies | offer ( movie name = after ) | offer ( movie name 1 = breakthrough ) | offer ( movie name 2 = captain marvel )
+movies | request ( show date )
+movies | offer ( show time = 9 pm ) | offer ( theater name = century 25 union landing & xd ) | inform count ( count = 1 )
+movies | offer intent ( buymovietickets )
+movies | goodbye
+events | request ( city of event ) | request ( number of seats )
+events | request ( date )
+events | confirm ( event name = owls vs tigers ) | confirm ( number of seats = 3 ) | confirm ( date = next thursday ) | confirm ( city of event = philadelphia )
+events | confirm ( event name = hozier ) | confirm ( date = day after tomorrow )
+events | notify failure | req more
+events | confirm ( event name = hozier ) | confirm ( number of seats = 3 ) | confirm ( date = day after tomorrow ) | confirm ( city of event = washington d.c . )
+events | notify failure | req more
+events | goodbye
+restaurants | request ( city ) | request ( cuisine )
+restaurants | offer ( restaurant name = andes cafe san mateo ) | offer ( city = san mateo ) | inform count ( count = 9 )
+restaurants | inform ( street address = 2317 south el camino real ) | inform ( price range = moderate )
+restaurants | request ( time )
+restaurants | confirm ( restaurant name = andes cafe san mateo ) | confirm ( city = san mateo ) | confirm ( time = 1:15 pm ) | confirm ( date = today ) | confirm ( party size = 2 )
+restaurants | inform ( serves alcohol = false ) | notify success
+restaurants | req more
+restaurants | goodbye
+restaurants | request ( city )
+restaurants | offer ( restaurant name = 1760 ) | offer ( city = san francisco ) | inform count ( count = 10 )
+restaurants | offer intent ( reserverestaurant )
+restaurants | request ( time )
+restaurants | confirm ( restaurant name = 1760 ) | confirm ( city = san francisco ) | confirm ( time = 4:45 pm ) | confirm ( party size = 2 ) | confirm ( date = today )
+restaurants | confirm ( time = 6 pm ) | confirm ( party size = 1 )
+restaurants | inform ( street address = 1760 polk street ) | notify success
+restaurants | req more
+restaurants | goodbye
+restaurants | request ( cuisine ) | request ( city )
+restaurants | offer ( restaurant name = 54 mint ristorante italiano ) | offer ( city = san francisco )
+restaurants | request ( time )
+restaurants | confirm ( restaurant name = 54 mint ristorante italiano ) | confirm ( city = san francisco ) | confirm ( time = 5:30 pm ) | confirm ( party size = 2 ) | confirm ( date = today )
+restaurants | confirm ( party size = 3 ) | confirm ( date = day after tomorrow )
+restaurants | confirm ( time = 11:30 am ) | confirm ( date = next thursday )
+restaurants | notify success
+restaurants | goodbye
+restaurants | request ( cuisine = mexican ) | request ( cuisine 1 = italian )
+restaurants | offer ( restaurant name = aslam 's rasoi ) | offer ( city = san francisco ) | inform count ( count = 4 )
+restaurants | inform ( has live music = false ) | inform ( street address = 1037 valencia street )
+restaurants | request ( time )
+restaurants | confirm ( restaurant name = aslam 's rasoi ) | confirm ( city = san francisco ) | confirm ( time = 5:30 pm ) | confirm ( date = march 14th ) | confirm ( party size = 2 )
+restaurants | confirm ( city = san francisco ) | confirm ( party size = 3 )
+restaurants | inform ( serves alcohol = false ) | notify success
+restaurants | inform ( phone number = 415-695-0599 )
+restaurants | goodbye
+media | request ( genre )
+media | offer ( title = dumbo )
+media | notify failure | req more
+media | offer ( title = hellboy ) | offer ( title 1 = mad max : fury road ) | offer ( title 2 = penguin highway )
+media | notify failure | req more
+media | offer ( title = after ) | offer ( title 1 = pillow talk ) | offer ( title 2 = say anything )
+media | offer intent ( playmovie )
+media | confirm ( title = say anything ) | confirm ( subtitles = true )
+media | notify success
+media | goodbye
+events | request ( event type = music ) | request ( event type 1 = sports )
+events | request ( city )
+events | offer ( event name = gloryhammer ) | offer ( venue = 1720 ( tm ) ) | inform count ( count = 5 )
+events | offer ( event name = bill callahan ) | offer ( venue = lodge room ) | inform count ( count = 9 )
+events | offer intent ( buyeventtickets )
+events | request ( date ) | request ( number of tickets )
+events | confirm ( event name = bill callahan ) | confirm ( number of tickets = 4 ) | confirm ( date = march 14th ) | confirm ( city = los angeles )
+events | confirm ( number of tickets = 1 ) | confirm ( city = los angeles )
+events | notify success
+events | goodbye
+hotels | request ( hotel name ) | request ( check out date ) | request ( check in date )
+hotels | request ( location )
+hotels | confirm ( hotel name = timhotel paris place d'italie ) | confirm ( location = paris ) | confirm ( check in date = day after tomorrow ) | confirm ( check out date = march 10th ) | confirm ( number of rooms = 1 )
+hotels | inform ( phone number = +33 1 44 24 01 01 ) | inform ( street address = 178 boulevard vincent auriol , 75013 ) | notify success
+hotels | goodbye
+flights | request ( destination city )
+flights | request ( origin city )
+flights | request ( departure date )
+flights | offer ( airlines = alaska airlines ) | offer ( outbound departure time = 3:55 pm ) | offer ( number stops = 0 ) | offer ( price = $ 196 ) | inform count ( count = 5 )
+flights | offer ( airlines = american airlines ) | offer ( outbound departure time = 2:15 pm ) | offer ( number stops = 1 ) | offer ( price = $ 287 )
+flights | inform ( origin airport = sfo international airport )
+flights | offer intent ( reserveonewayflight )
+flights | request ( return date )
+flights | offer ( airlines = american airlines ) | offer ( outbound departure time = 2:15 pm ) | offer ( inbound departure time = 11:40 am ) | offer ( price = $ 255 )
+flights | confirm ( origin city = san francisco ) | confirm ( destination city = atlanta ) | confirm ( airlines = american airlines ) | confirm ( departure date = march 9th ) | confirm ( return date = march 11th ) | confirm ( outbound departure time = 2:15 pm ) | confirm ( inbound departure time = 11:40 am ) | confirm ( seating class = economy ) | confirm ( passengers = 1 )
+flights | notify success
+flights | req more
+flights | goodbye
+rentalcars | request ( pickup time ) | request ( dropoff date )
+rentalcars | request ( pickup date )
+rentalcars | request ( pickup city )
+rentalcars | offer ( pickup location = union station ) | offer ( pickup date = march 11th ) | offer ( car type = standard ) | offer ( car name = honda accord ) | inform count ( count = 4 )
+rentalcars | inform ( total price = $ 87 )
+rentalcars | offer ( pickup location = union station ) | offer ( pickup date = march 11th ) | offer ( car type = standard ) | offer ( car name = honda civic )
+rentalcars | offer ( pickup location = dulles international airport ) | offer ( pickup date = march 11th ) | offer ( car type = standard ) | offer ( car name = toyota camry )
+rentalcars | inform ( total price = $ 93 )
+rentalcars | confirm ( pickup location = dulles international airport ) | confirm ( pickup date = march 11th ) | confirm ( pickup time = 4:30 pm ) | confirm ( dropoff date = march 14th ) | confirm ( car type = standard )
+rentalcars | notify success
+rentalcars | req more
+rentalcars | goodbye
+rentalcars | request ( pickup time )
+rentalcars | request ( dropoff date )
+rentalcars | offer ( pickup location = lgb airport ) | offer ( pickup date = tomorrow ) | offer ( car type = standard ) | offer ( car name = chevrolet cruze )
+rentalcars | offer intent ( reservecar )
+rentalcars | confirm ( pickup location = lgb airport ) | confirm ( pickup date = tomorrow ) | confirm ( pickup time = 6 pm ) | confirm ( dropoff date = next wednesday ) | confirm ( car type = standard )
+rentalcars | inform ( total price = $ 140 ) | notify success
+rentalcars | goodbye
+services | request ( type )
+services | offer ( doctor name = anjali tate , m.d . ) | offer ( city = san jose ) | offer ( type = gynecologist )
+services | inform ( phone number = 510-845-8035 )
+services | inform ( average rating = 5.0 ) | inform ( street address = 2400 samaritan drive # 105 )
+services | offer ( doctor name = dr. ali a. zaki , md ) | offer ( city = san jose ) | offer ( type = gynecologist )
+services | offer ( doctor name = access health ) | offer ( city = san jose ) | offer ( type = general practitioner ) | inform count ( count = 10 )
+services | goodbye
+services | offer ( stylist name = blow dry bar ) | offer ( city = walnut creek ) | inform count ( count = 10 )
+services | offer ( stylist name = dipietro todd salon ) | offer ( city = walnut creek ) | inform count ( count = 9 )
+services | confirm ( stylist name = dipietro todd salon ) | confirm ( appointment time = 5:30 pm ) | confirm ( appointment date = tomorrow )
+services | confirm ( appointment time = 5:30 pm ) | confirm ( appointment date = next friday )
+services | confirm ( appointment time = 2:30 pm ) | confirm ( appointment date = next friday )
+services | inform ( street address = 1919 mount diablo boulevard ) | notify success
+services | req more
+services | goodbye
+homes | request ( area )
+homes | request ( number of beds )
+homes | offer ( property name = avery park apartments ) | offer ( address = 2000 clay bank road ) | offer ( number of beds = 3 ) | offer ( number of baths = 2 ) | offer ( rent = 3700 ) | inform count ( count = 10 )
+homes | inform ( phone number = 707-881-7063 )
+homes | inform ( furnished = false )
+homes | offer ( property name = bennington apartments ) | offer ( address = 2780 north texas street ) | offer ( number of beds = 3 ) | offer ( number of baths = 3 ) | offer ( rent = 5050 )
+homes | req more
+homes | confirm ( property name = bennington apartments ) | confirm ( visit date = march 12th )
+homes | inform ( pets allowed = false ) | inform ( furnished = false ) | notify success
+homes | req more
+homes | goodbye
+homes | request ( number of beds ) | request ( area )
+homes | offer ( property name = crossing at montague apartments ) | offer ( address = 755 east capitol avenue ) | offer ( number of beds = 1 ) | offer ( number of baths = 1 ) | offer ( rent = 2900 )
+homes | confirm ( property name = crossing at montague apartments ) | confirm ( visit date = next tuesday )
+homes | inform ( furnished = false ) | inform ( phone number = 408-586-9001 ) | notify success
+homes | req more
+homes | goodbye
+homes | request ( area )
+homes | request ( number of beds )
+homes | offer ( property name = lafayette commons apartments ) | offer ( address = 3263 mount diablo court ) | offer ( number of beds = 2 ) | offer ( number of baths = 1 ) | offer ( rent = 2700 )
+homes | notify failure | req more
+homes | offer ( property name = blue sky apartments ) | offer ( address = 320 east tabor avenue ) | offer ( number of beds = 2 ) | offer ( number of baths = 1 ) | offer ( rent = 5000 )
+homes | inform ( phone number = 707-422-2850 )
+homes | offer intent ( schedulevisit )
+homes | confirm ( property name = blue sky apartments ) | confirm ( visit date = day after tomorrow )
+homes | notify success
+homes | goodbye

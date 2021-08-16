@@ -25,7 +25,7 @@ def init_arg_parser():
                         required=True, help="Choose the running mode for the script.")
 
     parser.add_argument("--model_type", choices=['gpt2', 'openai-gpt', 'bert', 'roberta', 'distilbert', 't5'],
-                        default="bert", type=str, required=True, help="The model architecture to be initialized.")
+                        default="bert", type=str, help="The model architecture to be initialized.")
     parser.add_argument("--model_name", default="", type=str,
                         help="The shortcut name of the pre-trained model weights for initialization.")
     parser.add_argument("--model_path", default="", type=str,
@@ -78,9 +78,9 @@ def init_arg_parser():
 
 
     ### Dev ###
-    parser.add_argument("--dev_data_file", default=None, type=str,
+    parser.add_argument("--dev_data_file", default="", type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a dev set).")
-    parser.add_argument("--dev_tgt_file", default=None, type=str)
+    parser.add_argument("--dev_tgt_file", default="", type=str)
     parser.add_argument("--dev_batch_size", default=20, type=int, help="Batch size for validating.")
 
     ### Decoding ###
@@ -92,6 +92,7 @@ def init_arg_parser():
     ### Evaluating ###
     parser.add_argument('--eval_output_file', type=str, default=None, help="Decoded text file.")
     parser.add_argument('--eval_tgt_file', type=str, default=None, help="Targeted utterances.")
+    parser.add_argument("--eval_batch_size", default=20, type=int, help="Batch size for decoding.")
 
     # parser.add_argument("--top_k", type=int, default=0)
     # parser.add_argument("--top_p", type=float, default=0.9)
@@ -115,8 +116,8 @@ def init_arg_parser():
     parser.add_argument('--data_cache_dir', default="", type=str, help="Dir to cache preprocessed data bin file")
     parser.add_argument('--max_intent_len', default=40, type=int, help="Max intention length (for EncDec model)")
     parser.add_argument('--max_utter_len', default=60, type=int, help="Max utterance length (for EncDec model)")
-    parser.add_argument('--max_len', default=80, type=int, help="Max raw sentence length (for LM model)")
 
+    # parser.add_argument('--max_len', default=80, type=int, help="Max raw sentence length (for LM model)")
     # parser.add_argument('--text_chunk', default=False, action='store_true',
     #                     help="Read the text data file in one chunk instead of reading it line by line")
     # parser.add_argument('--use_reverse', default=False, action='store_true', help="")
@@ -153,20 +154,22 @@ def check_config(parser):
                         filename=f"{args.output_dir}/log/{args.mode}.log")
     logging.info("Processing with device: %s", args.device)
 
-    # which pre-trained model to load
-    if not args.model_name and not args.model_path:
-        raise ValueError("Must specify either --model_name or --model_path")
-    elif args.model_name and args.model_path:
-        raise ValueError("Only specify either model_name or model_path")
+    if args.mode != "eval":
+        # which pre-trained model to load
+        if not args.model_name and not args.model_path:
+            raise ValueError("Must specify either --model_name or --model_path")
+        elif args.model_name and args.model_path:
+            raise ValueError("Only specify either model_name or model_path")
+        else:
+            args.model_loc = args.model_name if args.model_name else args.model_path
     else:
-        args.model_loc = args.model_name if args.model_name else args.model_path
+        args.model_loc = ""
 
     ### mode ###
     if args.mode == 'train':
         if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and not args.overwrite_output_dir:
             raise ValueError("Output directory ({}) already exists and is not empty. Use "
                              "--overwrite_output_dir to overcome.".format(args.output_dir))
-        assert (args.dev_data_file is not None)
     return args
 
 

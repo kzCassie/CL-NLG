@@ -2,11 +2,13 @@ import torch
 import logging
 import json
 from tqdm import tqdm
+from torch.utils.data import SequentialSampler
 from common.data import get_data_loader
 
 
 def decode(args, model, tokenizer):
-    dataloader, len_dataset = get_data_loader(args, tokenizer, mode='decode')
+    dataloader, len_dataset = get_data_loader(args, tokenizer, args.decode_input_file, args.decode_tgt_file,
+                                              args.decode_batch_size, SequentialSampler)
 
     # Decode!
     logging.info("***** Decoding *****")
@@ -24,7 +26,7 @@ def decode(args, model, tokenizer):
         inputs = inputs.to(args.device)
         labels = labels.to(args.device)
 
-        example_ids = model.generate(inputs)
+        example_ids = model.generate(inputs, max_length=args.max_utter_len)
         examples = tokenizer.batch_decode(example_ids, skip_special_tokens=True)
         outputs.extend(examples)
 

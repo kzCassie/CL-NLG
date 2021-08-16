@@ -1,0 +1,6 @@
+inform ( name = hakka restaurant ; pricerange = moderate ) & hakka restaurant is moderate -ly priced
+inform ( name = kappa japanese restaurant ; area = lower pacific heights ; pricerange = moderate ) & we have a moderate -ly priced kappa japanese restaurant in the lower pacific heights area
+inform ( name = u lee restaurant ; address = 1468 hyde street ) & u lee restaurant 's address is 1468 hyde street
+inform ( name = fog harbor fish house ; phone = 4154212442 ) & you can talk to the fine folks at fog harbor fish house at 4154212442
+inform ( name = thai idea vegetarian ; area = hayes valley or civic center ) & thai idea vegetarian is in the hayes valley or civic center area
+goodbye (  = ? ) & goodbye

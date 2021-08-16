@@ -2,9 +2,19 @@
 import logging
 from tqdm import trange
 from torch.utils.data import DataLoader, RandomSampler
+from torch import sqrt
 
 
+###########################
+#   Bucket Curriculum     #
+###########################
 class BucketCurriculum(object):
+    """
+    1. Sort data by difficulty.
+    2. Split data to buckets accord. to difficulty. Each bucket as one 'curriculum'.
+    3. Yield one curriculum after the other.
+    """
+
     def __init__(self, dataset, scoring_fn):
         """
         dataset (FewShotWozDataset): Dataset that returns self.intents and self.utterances
@@ -40,7 +50,7 @@ class BucketCurriculum(object):
         logging.info(f"  Number of instances per bucket = {bucket_size}")
         logging.info(f"Total number of curriculums = {tot_num_bucket}")
         logging.info(f"  Number of complete curriculums = {num_bucket}")
-        logging.info(f"  Number of incomplete curriculums = {tot_num_bucket-num_bucket}")
+        logging.info(f"  Number of incomplete curriculums = {tot_num_bucket - num_bucket}")
         logging.info(f"**************************************")
 
         for b in trange(tot_num_bucket, desc="Curriculum"):
@@ -57,35 +67,69 @@ class BucketCurriculum(object):
             yield curriculum_dataloader, len(curriculum_dataset)
 
 
-###########################
-#    Scoring Function     #
-###########################
 # given intent and utterance str, measure the difficulty of the sample
 def length_score_fn(intent, utterance):
     return len(intent.split()) + len(utterance.split())
 
 
 def intent_slot_score_fn(intent, utterance):
+    def count_intent_slot(intent):
+        import re
+        intent_sep = '|'
+        slot_sep = ';'
+        # pattern = re.compile(r'\((.*?)\)')
+
+        intents = intent.split(intent_sep)
+        num_intents, num_slots = len(intents), 0
+
+        for i in intents:
+            slot_vals = i.split(slot_sep)
+            num_slots += len(slot_vals)
+
+        return num_intents, num_slots
+
     num_intents, num_slots = count_intent_slot(intent)
     return num_intents * 100 + num_slots  # TODO: this is evil. Assume num_slot_per_intent < 100
 
 
-# helper functions
-def count_intent_slot(intent):
-    import re
-    intent_sep = '@'
-    slot_sep = ';'
-    pattern = re.compile(r'\((.*?)\)')
+###########################
+#   Self-Paced Learning   #
+###########################
+class SplRegularizer(object):
+    """
+    name: {hard, linear, mixture}
+    """
+    def __init__(self, name, **kwargs):
+        self.name = name
+        self.lam = kwargs['lam']
+        if self.name == "mixture":
+            self.gam = kwargs['gam']
 
-    intents = intent.split(intent_sep)
-    num_intents, num_slots = len(intents), 0
+    def v(self, loss):
+        """
+        input:
+            l (torch.Tensor[n,]): 1-d sample losses
+        return:
+            optimal sample weight vector v
+        """
+        if self.name == 'hard':
+            v = (loss < self.lam) * 1
+        elif self.name == "linear":
+            v = (loss < self.lam) * (1 - loss / self.lam)
+        elif self.name == "mixture":
+            cut1 = ((self.lam * self.gam) / (self.lam + self.gam)) ** 2
+            cut2 = self.lam ** 2
+            tmp1 = (loss < cut1) * 1
+            tmp2 = (loss >= cut1) * (loss < cut2) * self.gam * (1 / sqrt(loss) - 1 / self.lam)
+            v = tmp1 + tmp2
+        else:
+            raise ValueError("Invalid SPL regularizer name!")
 
-    for i in intents:
-        slot2val = pattern.search(i).group(1)  # match slot-value pairs inside ()
-        slot_vals = slot2val.split(slot_sep)
-        num_slots += len(slot_vals)
+        v.requires_grad = False
+        return v
 
-    return num_intents, num_slots
+    def update_hyper(self):
+        self.lam *= 1.3
 
 
 ###########################

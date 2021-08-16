@@ -21,8 +21,8 @@ class AbstractDataset(Dataset):
     def from_bin_file(path):
         """ load from cached .bin"""
         with open(path, 'rb') as handle:
-            few_shot_woz_dataset = pickle.load(handle)
-        return few_shot_woz_dataset
+            abstract_dataset = pickle.load(handle)
+        return abstract_dataset
 
     @staticmethod
     def from_txt_file(input_path, cache_path, **kwargs):
@@ -75,11 +75,9 @@ class MultiwozSgdDataset(AbstractDataset):
                 new_dataset.intents.append(line.lower())
 
         # process tgt file
-        tgt_file = kwargs.get('tgt_file', None)
-        if tgt_file is not None:
-            with open(tgt_file, encoding="utf-8") as f:
-                for line in f:
-                    new_dataset.utterances.append(line.lower())
+        with open(kwargs['tgt_file'], encoding="utf-8") as f:
+            for line in f:
+                new_dataset.utterances.append(line.lower())
 
         # cache
         MultiwozSgdDataset.cache_file(new_dataset, input_path, cache_dir)
@@ -116,7 +114,7 @@ class ComparisonDataset(Dataset):
 ###########################
 #    Collate Functions    #
 ###########################
-def enc_dec_collate_fn(data, tokenizer, max_intent_len=40, max_utter_len=60):
+def enc_dec_collate_fn(data, tokenizer, max_intent_len, max_utter_len):
     """ Encoder-Decode model collate function
     Arg:
         data (List[Tuple[intent_str, utter_str]): One batch/list of data tuples. Each tuple contains un-tokenized
@@ -134,25 +132,10 @@ def enc_dec_collate_fn(data, tokenizer, max_intent_len=40, max_utter_len=60):
     return torch.LongTensor(padded_intents_ids), torch.LongTensor(padded_utterances_ids)
 
 
-def lm_collate_fn(data, tokenizer, max_len=80, separator='&'):
-    """ Language Modeling model collate function
-    Concatenate intents and utterances by separator.
-    Return:
-        inputs: padded_raw_ids
-        labels: padded_raw_ids
-    """
-    raw_str = [f"{d[0]} {separator} {d[1]}" for d in data]
-    padded_raw_ids = tokenizer(raw_str, padding='longest', truncation=True, max_length=max_len)['input_ids']
-    return torch.LongTensor(padded_raw_ids), torch.LongTensor(padded_raw_ids)
-
-
-# def comp_collate_fn(data, tokenizer):
-
-
 ###########################
 #  Construct DataLoader   #
 ###########################
-def get_dataset(data_file, tgt_file, data_cache_dir=None, overwrite_cache=False):
+def get_dataset(data_file, tgt_file, data_cache_dir, overwrite_cache):
     filename = os.path.splitext(os.path.basename(data_file))[0]
     data_cache_path = os.path.join(data_cache_dir, filename + ".bin")
     if not overwrite_cache and os.path.exists(data_cache_path):
@@ -166,40 +149,12 @@ def get_dataset(data_file, tgt_file, data_cache_dir=None, overwrite_cache=False)
 
 
 def get_collate_fn(args, tokenizer):
-    if args.enc_dec:
-        fn = partial(enc_dec_collate_fn, tokenizer=tokenizer, max_intent_len=args.max_intent_len,
-                     max_utter_len=args.max_utter_len)
-    else:
-        fn = partial(lm_collate_fn, tokenizer=tokenizer, max_len=args.max_len, separator='&')
+    fn = partial(enc_dec_collate_fn, tokenizer=tokenizer,
+                 max_intent_len=args.max_intent_len, max_utter_len=args.max_utter_len)
     return fn
 
 
-def get_sampler(dataset, mode):
-    if mode == 'eval' or 'decode':
-        return SequentialSampler(dataset)
-    else:
-        return RandomSampler(dataset)
-
-
-def get_data_loader(args, tokenizer, mode):
-    if mode == "train":
-        data_file = args.train_data_file  # src file
-        tgt_file = args.train_tgt_file
-        batch_size = args.train_batch_size
-        sampler_class = RandomSampler
-    elif mode == "dev":
-        data_file = args.dev_data_file
-        tgt_file = args.dev_tgt_file
-        batch_size = args.dev_batch_size
-        sampler_class = SequentialSampler
-    elif mode == "decode":
-        data_file = args.decode_input_file
-        tgt_file = args.decode_tgt_file
-        batch_size = args.decode_batch_size
-        sampler_class = SequentialSampler
-    else:
-        raise ValueError("Invalid args.mode")
-
+def get_data_loader(args, tokenizer, data_file, tgt_file, batch_size, sampler_class):
     dataset = get_dataset(data_file, tgt_file, args.data_cache_dir, args.overwrite_cache)
     sampler = sampler_class(dataset)
     collate_fn = get_collate_fn(args, tokenizer)
@@ -207,9 +162,9 @@ def get_data_loader(args, tokenizer, mode):
     return dataloader, len(dataset)
 
 
-def get_comp_dataloader(output_file, tgt_file):
+def get_comp_dataloader(output_file, tgt_file, batch_size):
     dataset = ComparisonDataset(output_file, tgt_file)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader, len(dataset)
 
 
