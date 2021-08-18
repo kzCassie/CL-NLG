@@ -2,10 +2,19 @@
 export CUDA_VISIBLE_DEVICES=0
 
 ### Curriculum ###
-curriculum_name=$1 #[NC, one_pass, baby_step, spl.hard, spl.linear, spl.mixture]
+#[NC, one_pass, baby_step, dynamic, spl.hard, spl.linear, spl.mixture]
+curriculum_name=$1
 curriculum_num_bucket=5
 
-# data
+# dynamic curriculum
+dcl_baseline="saved_models/sgd/naive_5_shot/NC"
+dcl_phase=5
+dcl_a=1
+dcl_c0=0.2
+dcl_beta=0.9
+
+
+### data ###
 dataset="sgd"
 domain="naive_5_shot"
 data_file_name="train.src"
@@ -13,7 +22,7 @@ data_tgt_name="train.trg"
 dev_file_name="dev2.src"
 dev_tgt_name="dev2.trg"
 
-# model
+### model ###
 model_type=t5
 model_name="t5-small"
 seed=42
@@ -37,6 +46,11 @@ python exp.py \
   --mode train \
   --curriculum_name ${curriculum_name} \
   --curriculum_num_bucket ${curriculum_num_bucket} \
+  --dcl_baseline ${dcl_baseline} \
+  --dcl_phase ${dcl_phase} \
+  --dcl_a ${dcl_a} \
+  --dcl_c0 ${dcl_c0} \
+  --dcl_beta ${dcl_beta} \
   --model_type ${model_type} \
   --model_name ${model_name} \
   --output_dir ${output_dir} \
@@ -51,4 +65,3 @@ python exp.py \
   --learning_rate ${lr} \
   --train_patience 10 \
   --overwrite_output_dir
-#    --overwrite_cache

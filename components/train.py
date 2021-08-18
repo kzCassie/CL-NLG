@@ -1,16 +1,17 @@
 import logging
 import torch
 import json
+import numpy as np
 from tqdm import trange
-from transformers import Adafactor, get_linear_schedule_with_warmup
+from transformers import Adafactor
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import SequentialSampler, RandomSampler
+from torch.utils.data.dataloader import DataLoader
 
-
-from common.utils import set_seed, save_checkpoint
-from common.data import get_dataset, get_data_loader, get_collate_fn
-from common.curriculum import BucketCurriculum, intent_slot_score_fn, SplRegularizer
-from components.evaluate import evaluate_loss, evaluate_bleu
+from common.utils import set_seed, save_checkpoint, load_checkpoint
+from common.data import get_dataset, get_data_loader, get_data_loader_from_dataset, get_collate_fn
+from common.curriculum import BucketCurriculum, DynamicCurriculum, intent_slot_score_fn, SplRegularizer
+from components.evaluate import evaluate_data_set
 
 
 def train_with_dataloader(args, train_dataloader, model, tokenizer, eval_dataloader, len_eval_dataset,
@@ -105,8 +106,8 @@ def train_with_dataloader(args, train_dataloader, model, tokenizer, eval_dataloa
 
         # validating & early stopping
         if eval_dataloader:
-            dev_loss = - evaluate_bleu(eval_dataloader, len_eval_dataset, model, tokenizer, args)  # TODO: dev BLEU
-            # dev_loss = evaluate_loss(eval_dataloader, len_eval_dataset, model, args, verbose=False)
+            metrics = evaluate_data_set(eval_dataloader, model, tokenizer, ["loss", "bleu", "accu"], args, False)
+            dev_loss = - metrics['bleu']
             is_better = eval_losses == [] or dev_loss < min(eval_losses)
             eval_losses.append(dev_loss)
             logging.info("[Epoch %d] Running loss = %.4f  Dev loss = %.4f", e + 1, epoch_loss, dev_loss)
@@ -124,7 +125,14 @@ def train_with_dataloader(args, train_dataloader, model, tokenizer, eval_dataloa
         else:
             save_checkpoint(args.output_dir, model, tokenizer, args)
 
-    return model, best_epoch_loss, batch_losses, batch_ex_seen, epoch_losses, epoch_ex_seen, eval_losses  # TODO: eval_losses is actually neg BLEU on dev set
+    result = {
+        "batch_losses": batch_losses,
+        "batch_ex_seen": batch_ex_seen,
+        "epoch_losses": epoch_losses,
+        "epoch_ex_seen": epoch_ex_seen,
+        "neg_bleu": eval_losses,
+    }
+    return model, best_epoch_loss, result
 
 
 def train_with_one_bucket(args, model, tokenizer, eval_dataloader, len_eval_dataset, spl_regularizer=None):
@@ -143,18 +151,17 @@ def train_with_one_bucket(args, model, tokenizer, eval_dataloader, len_eval_data
     logging.info("  Training batch size = %d", args.train_batch_size)
 
     # train
-    model, best_epoch_loss, batch_losses, batch_ex_seen, epoch_losses, epoch_ex_seen, eval_losses \
-        = train_with_dataloader(args, train_dataloader, model, tokenizer,
-                                eval_dataloader, len_eval_dataset, spl_regularizer)
+    model, best_epoch_loss, result = train_with_dataloader(args, train_dataloader, model, tokenizer,
+                                          eval_dataloader, len_eval_dataset, spl_regularizer)
     logging.info("  Loss = %.4f", best_epoch_loss)
 
     # save history
     history = {
-        "batch_losses": batch_losses,
-        "batch_ex_seen": batch_ex_seen,
-        "epoch_losses": epoch_losses,
-        "epoch_ex_seen": epoch_ex_seen,
-        "eval_losses": eval_losses
+        "batch_losses": [result["batch_losses"]],
+        "batch_ex_seen": [result["batch_ex_seen"]],
+        "epoch_losses": [result["epoch_losses"]],
+        "epoch_ex_seen": [result["epoch_ex_seen"]],
+        "neg_bleu": [result["neg_bleu"]]
     }
     with open(f"{args.output_dir}/history.json", 'w') as f:
         json.dump(history, f, indent=4)
@@ -183,17 +190,16 @@ def train_bucket_curriculum(args, model, tokenizer, eval_dataloader, len_eval_da
         logging.info("  ***** Curriculum = %d *****", idx+1)
         logging.info("  Num examples = %d", len_curriculum_dataset)
 
-        model, curr_best_epoch_loss, curr_batch_losses, curr_batch_ex_seen, curr_epoch_losses, curr_epoch_ex_seen, \
-            curr_eval_losses = train_with_dataloader(args, curriculum_dataloader, model, tokenizer,
+        model, best_curr_loss, result = train_with_dataloader(args, curriculum_dataloader, model, tokenizer,
                                                      eval_dataloader, len_eval_dataset)
-        best_epoch_loss = min(best_epoch_loss, curr_best_epoch_loss)
+        best_epoch_loss = min(best_epoch_loss, best_curr_loss)
         logging.info("  Loss = %.4f", best_epoch_loss)
 
-        batch_losses.append(curr_batch_losses)
-        batch_ex_seen.append(curr_batch_ex_seen)
-        epoch_losses.append(curr_epoch_losses)
-        epoch_ex_seen.append(curr_epoch_ex_seen)
-        eval_losses.append(curr_eval_losses)
+        batch_losses.append(result["batch_losses"])
+        batch_ex_seen.append(result["batch_ex_seen"])
+        epoch_losses.append(result["epoch_losses"])
+        epoch_ex_seen.append(result["epoch_ex_seen"])
+        eval_losses.append(result["neg_bleu"])
 
     history = {
         "batch_losses": batch_losses,
@@ -204,6 +210,95 @@ def train_bucket_curriculum(args, model, tokenizer, eval_dataloader, len_eval_da
     }
     with open(f"{args.output_dir}/history.json", 'w') as f:
         json.dump(history, f, indent=4)
+    return model
+
+
+def train_with_dynamic_curriculum(args, model, tokenizer, eval_dataloader, len_eval_dataset):
+    """
+    model, tokenizer: load from t5-small
+    baseline_model, baseline_tokenizer: trained baseline model to init BLEU_T
+    """
+    # train_dataset
+    train_dataset = get_dataset(args.train_data_file, args.train_tgt_file, args.data_cache_dir, args.overwrite_cache)
+
+    # baseline vanilla model without CL
+    model_class, tokenizer_class = type(model), type(tokenizer)
+    baseline_model, baseline_tokenizer = load_checkpoint(args.dcl_baseline, model_class, tokenizer_class)
+
+    # baseline model BLEU_T
+    seq_train_dataloader, len_train_dataset = get_data_loader_from_dataset(args, train_dataset, baseline_tokenizer,
+                                                                           args.dev_batch_size, SequentialSampler)
+
+    metrics = evaluate_data_set(seq_train_dataloader, baseline_model, baseline_tokenizer, ["bleu", "accu"], args)
+    bleu_T, accu_T = metrics["bleu"], metrics["accu"]
+
+    # train by phases
+    batch_losses, batch_ex_seen, epoch_losses, epoch_ex_seen, eval_losses = [], [], [], [], []
+    best_epoch_loss = float('inf')
+
+    dcl = DynamicCurriculum(train_dataset)
+    phase_losses = np.empty((0, len_train_dataset))  # historical losses for past 'a' phases
+    # phase_accu = np.empty((0, len_train_dataset))  # historical slot accuracies for past 'a' phases
+    c_s = [args.dcl_c0]  # model competences
+
+    for t in trange(int(args.dcl_phase), desc="Phase"):
+        logging.info(f"Dynamic CL - [Phase {t+1}]")
+
+        # get training sample losses
+        seq_train_dataloader, len_train_dataset = get_data_loader_from_dataset(args, train_dataset, tokenizer,
+                                                                               args.dev_batch_size, SequentialSampler)
+        metrics = evaluate_data_set(seq_train_dataloader, model, tokenizer, ["loss"], args, True)
+        phase_losses = np.append(phase_losses, [metrics["loss"]], axis=0)
+        # phase_accu = np.append(phase_accu, [metrics["accu"]], axis=0)
+
+        # get sample difficulties
+        if t < args.dcl_a:
+            difficulties = phase_losses[-1]
+        else:
+            difficulties = (phase_losses[-1] - phase_losses[0]) / phase_losses[0]
+            phase_losses = np.delete(phase_losses, 0, axis=0)
+            # phase_accu = np.delete(phase_accu, 0, axis=0)
+
+        # dev set BLEU_t
+        metrics = evaluate_data_set(eval_dataloader, model, tokenizer, ["bleu", "accu"], args)
+        bleu_t, accu_t = metrics["bleu"], metrics["accu"]
+
+        # estimate model competence
+        alpha = float(args.dcl_alpha)
+        beta = float(args.dcl_beta)
+        c_t = min(1, ((1-alpha)*bleu_t/bleu_T + alpha*accu_t/accu_T) * (1-c_s[0])/beta + c_s[0])
+        c_s.append(c_t)
+
+        # Sort samples by difficulties
+        # Use the easier subset
+        curriculum_dataloader = dcl.get_curriculum(difficulties, c_t, args.train_batch_size,
+                                                   get_collate_fn(args, tokenizer))
+
+        # train
+        model, best_curr_loss, result = train_with_dataloader(args, curriculum_dataloader, model, tokenizer,
+                                                               eval_dataloader, len_eval_dataset)
+
+        # record training results
+        best_epoch_loss = min(best_epoch_loss, best_curr_loss)
+        logging.info("  Best Epoch Loss = %.4f", best_epoch_loss)
+
+        batch_losses.append(result["batch_losses"])
+        batch_ex_seen.append(result["batch_ex_seen"])
+        epoch_losses.append(result["epoch_losses"])
+        epoch_ex_seen.append(result["epoch_ex_seen"])
+        eval_losses.append(result["neg_bleu"])
+
+    history = {
+        "batch_losses": batch_losses,
+        "batch_ex_seen": batch_ex_seen,
+        "epoch_losses": epoch_losses,
+        "epoch_ex_seen": epoch_ex_seen,
+        "eval_losses": eval_losses,
+        "competence": c_s,
+    }
+    with open(f"{args.output_dir}/history.json", 'w') as f:
+        json.dump(history, f, indent=4)
+
     return model
 
 
@@ -231,6 +326,8 @@ def train(args, model, tokenizer):
         model = train_with_one_bucket(args, model, tokenizer, eval_dataloader, len_eval_dataset, spl_regularizer)
     elif args.curriculum_name in ["one_pass", "baby_step"]:
         model = train_bucket_curriculum(args, model, tokenizer, eval_dataloader, len_eval_dataset, intent_slot_score_fn)
+    elif args.curriculum_name == "dynamic":
+        model = train_with_dynamic_curriculum(args, model, tokenizer, eval_dataloader, len_eval_dataset)
     else:
         raise ValueError("Invalid args.curriculum_name.")
 

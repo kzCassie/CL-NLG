@@ -162,6 +162,13 @@ def get_data_loader(args, tokenizer, data_file, tgt_file, batch_size, sampler_cl
     return dataloader, len(dataset)
 
 
+def get_data_loader_from_dataset(args, dataset, tokenizer, batch_size, sampler_class):
+    sampler = sampler_class(dataset)
+    collate_fn = get_collate_fn(args, tokenizer)
+    dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, collate_fn=collate_fn, drop_last=False)
+    return dataloader, len(dataset)
+
+
 def get_comp_dataloader(output_file, tgt_file, batch_size):
     dataset = ComparisonDataset(output_file, tgt_file)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)

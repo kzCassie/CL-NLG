@@ -14,7 +14,6 @@ class BucketCurriculum(object):
     2. Split data to buckets accord. to difficulty. Each bucket as one 'curriculum'.
     3. Yield one curriculum after the other.
     """
-
     def __init__(self, dataset, scoring_fn):
         """
         dataset (FewShotWozDataset): Dataset that returns self.intents and self.utterances
@@ -53,7 +52,7 @@ class BucketCurriculum(object):
         logging.info(f"  Number of incomplete curriculums = {tot_num_bucket - num_bucket}")
         logging.info(f"**************************************")
 
-        for b in trange(tot_num_bucket, desc="Curriculum"):
+        for b in range(tot_num_bucket):
             if name == "one_pass":
                 start, end = b * bucket_size, min(b * bucket_size + bucket_size, dataset_len)
             elif name == "baby_step":
@@ -65,6 +64,41 @@ class BucketCurriculum(object):
                                                sampler=RandomSampler(curriculum_dataset),
                                                collate_fn=collate_fn, drop_last=False)
             yield curriculum_dataloader, len(curriculum_dataset)
+
+
+########################
+#  Dynamic Curriculum  #
+########################
+class DynamicCurriculum(object):
+    def __init__(self, dataset):
+        """
+        dataset (AbstractDataset): Dataset that returns self.intents and self.utterances
+        scoring_fn (Callable):
+            input: intents(Str), utterance(Str)
+            output: scores (Float/Int) that measure how hard the example is
+        """
+        self.intents = dataset.intents
+        self.utterances = dataset.utterances
+        self.dataset_class = type(dataset)
+        self.data_len = len(dataset)
+
+    def sort_by_diff(self, difficulties):
+        sort_by_diff = sorted(zip(self.intents, self.utterances, difficulties), key=lambda pair: pair[2])
+        sorted_intents, sorted_utterances, sorted_difficulty = zip(*sort_by_diff)
+        return sorted_intents, sorted_utterances, sorted_difficulty
+
+    def get_curriculum(self, difficulties, competence, batch_size, collate_fn):
+        """
+        batch_size (Int): train batch_size for each bucket
+        competence (float): Range = (0,1]. The model competence, i.e. the percentage of dataset that can be used.
+        """
+        sorted_intents, sorted_utterances, sorted_difficulty = self.sort_by_diff(difficulties)
+        n_example = int(self.data_len * competence)
+
+        curriculum_dataset = self.dataset_class(sorted_intents[: n_example], sorted_utterances[: n_example])
+        dataloader = DataLoader(curriculum_dataset, batch_size=batch_size, sampler=RandomSampler(curriculum_dataset),
+                                collate_fn=collate_fn, drop_last=False)
+        return dataloader
 
 
 # given intent and utterance str, measure the difficulty of the sample

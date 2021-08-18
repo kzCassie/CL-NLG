@@ -74,8 +74,13 @@ def init_arg_parser():
     parser.add_argument("--curriculum_name", default="NC", type=str, help="[NC, one_pass, baby_step]")
     parser.add_argument("--curriculum_num_bucket", default=5, type=int, help="Num of curriculum buckets.")
 
-
-
+    # Dynamic CL
+    parser.add_argument("--dcl_baseline", default="", type=str, help="Trained baseline model for dynamic CL")
+    parser.add_argument("--dcl_phase", default=5, type=int, help="Num of phases for dynamic CL.")
+    parser.add_argument("--dcl_a", default=1, type=int, help="Num of warming-up phases for dynamic CL.")
+    parser.add_argument("--dcl_c0", default=0.2, type=float, help="Percentage of the training set to be included in the first phase")
+    parser.add_argument("--dcl_alpha", default=0.3, type=float, help="Weight of slot accuracy against BLEU when calculating model competence")
+    parser.add_argument("--dcl_beta", default=0.9, type=float, help="Model competence measure hyper-param.")
 
     ### Dev ###
     parser.add_argument("--dev_data_file", default="", type=str,
@@ -154,14 +159,11 @@ def check_config(parser):
                         filename=f"{args.output_dir}/log/{args.mode}.log")
     logging.info("Processing with device: %s", args.device)
 
-    if args.mode != "eval":
-        # which pre-trained model to load
-        if not args.model_name and not args.model_path:
-            raise ValueError("Must specify either --model_name or --model_path")
-        elif args.model_name and args.model_path:
-            raise ValueError("Only specify either model_name or model_path")
-        else:
-            args.model_loc = args.model_name if args.model_name else args.model_path
+    # base model path
+    if args.mode == "train":
+        args.model_loc = args.model_name
+    elif args.mode == "decode":
+        args.model_loc = args.model_path
     else:
         args.model_loc = ""
 
