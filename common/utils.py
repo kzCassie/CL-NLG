@@ -41,6 +41,7 @@ def init_arg_parser():
                         help="The target training data file (a text file).")
     parser.add_argument("--output_dir", default=None, type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
+    parser.add_argument("--eval_while_train", action='store_true', help="Validate every epoch during training")
 
     # Training schedule details
     parser.add_argument("--train_batch_size", default=1, type=int, help="Training batch size of DataLoader")

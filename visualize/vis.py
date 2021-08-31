@@ -9,7 +9,7 @@ base_output_dir = "saved_models"
 dataset_name = "sgd"
 domains = ['naive_5_shot']
 # domains = ['attraction', 'hotel', 'laptop', 'restaurant', 'taxi', 'train', 'tv']
-curriculums = ["NC", "one_pass", "baby_step", "dynamic"]
+curriculums = ["NC", "one_pass", "baby_step", "dcl", "dcl.accu"]
 figure_path = "visualize/results"
 
 
@@ -36,13 +36,13 @@ def plot_loss(ex_seen, losses, ax, label):
 ########
 # Plot #
 ########
-def plot_epoch_bleu(domain, saveto):
+def plot_epoch_bleu(domain, saveto, curriculums):
     fig, ax = plt.subplots()
 
     for curriculum in curriculums:
         path = get_hist_path(domain, curriculum)
         history = read_history_json(path)
-        ex_seen, losses = history['epoch_ex_seen'], history['eval_losses']
+        ex_seen, losses = history['epoch_ex_seen'], history['neg_bleu']
         ex_seen, losses = flatten_list(ex_seen), flatten_list(losses)
         bleus = [-loss for loss in losses]
         plot_loss(ex_seen, bleus, ax, label=curriculum)
@@ -51,6 +51,7 @@ def plot_epoch_bleu(domain, saveto):
     ax.set_xlabel("num train examples seen")
     ax.set_ylabel("BLEU")
     ax.set_title(f"{domain.title()} Dev Set BLEU")
+    ax.set_ylim([0, 70])
     plt.show()
     fig.savefig(f"{figure_path}/{saveto}")
     return fig
@@ -81,5 +82,9 @@ def plot_epoch_bleu(domain, saveto):
 
 
 if __name__ == "__main__":
-    fig = plot_epoch_bleu("naive_5_shot", saveto="sgd.naive_5_shot.png")
+    plot_epoch_bleu("naive_10_shot", saveto="sgd.naive_10_shot_manual.png",
+                    curriculums=["NC", "one_pass", "baby_step", "dcl"])
+    plot_epoch_bleu("naive_10_shot", saveto="sgd.naive_10_shot_dcl.png",
+                    curriculums=["dcl", "dcl.accu_0.25", "dcl.accu_0.5", "dcl.accu_0.75"])
+
     # epoch_per_curriculum("restaurant", ax=None)

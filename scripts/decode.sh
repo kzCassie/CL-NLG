@@ -6,7 +6,7 @@ curriculum_name=$1
 
 # data
 dataset="sgd"
-domain="naive_5_shot"
+domain="naive_10_shot"
 data_file_name="test.src"
 data_tgt_name="test.trg"
 

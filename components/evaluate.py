@@ -83,52 +83,52 @@ def calc_slot_accu(src, tgt):
     return accu
 
 
-def evaluate_loss(eval_dataloader, len_eval_dataset, model, args, sentence_loss=False):
-    model.to(args.device)
-    model.eval()
-    eval_losses = []
+# def evaluate_loss(eval_dataloader, len_eval_dataset, model, args, sentence_loss=False):
+#     model.to(args.device)
+#     model.eval()
+#     eval_losses = []
+#
+#     loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
+#     for batch in tqdm(eval_dataloader, desc="Evaluating"):
+#         inputs, labels = batch
+#         inputs = inputs.to(args.device)
+#         labels = labels.to(args.device)
+#
+#         with torch.no_grad():
+#             outputs = model(inputs, labels=labels)
+#             tmp_loss = loss_fct(outputs.logits.permute(1, 2, 0), labels.permute(1, 0))
+#             sample_losses = torch.mean(tmp_loss, dim=0)
+#             eval_losses.extend(sample_losses.tolist())
+#             # loss = outputs.loss
+#             # eval_losses.append(loss.item() * len(inputs))
+#
+#     if sentence_loss:
+#         return eval_losses
+#     else:
+#         return sum(eval_losses) / len_eval_dataset
 
-    loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
-    for batch in tqdm(eval_dataloader, desc="Evaluating"):
-        inputs, labels = batch
-        inputs = inputs.to(args.device)
-        labels = labels.to(args.device)
 
-        with torch.no_grad():
-            outputs = model(inputs, labels=labels)
-            tmp_loss = loss_fct(outputs.logits.permute(1, 2, 0), labels.permute(1, 0))
-            sample_losses = torch.mean(tmp_loss, dim=0)
-            eval_losses.extend(sample_losses.tolist())
-            # loss = outputs.loss
-            # eval_losses.append(loss.item() * len(inputs))
-
-    if sentence_loss:
-        return eval_losses
-    else:
-        return sum(eval_losses) / len_eval_dataset
-
-
-def evaluate_bleu(eval_dataloader, len_eval_dataset, model, tokenizer, args, sentence_bleu=False):
-    model.to(args.device)
-    model.eval()
-    bleu_scores = []
-
-    for batch in tqdm(eval_dataloader, desc="Evaluating BLEU"):
-        inputs, labels = batch
-        inputs = inputs.to(args.device)
-        labels = labels.to(args.device)
-
-        example_ids = model.generate(inputs, max_length=args.max_utter_len)
-        examples = tokenizer.batch_decode(example_ids, skip_special_tokens=True)
-        targets = tokenizer.batch_decode(labels, skip_special_tokens=True)
-
-        for example, target in zip(examples, targets):
-            bleu_scores.append(sacrebleu.sentence_bleu(example, [target]).score)
-
-    if sentence_bleu:
-        return bleu_scores
-    else:
-        return sum(bleu_scores) / len_eval_dataset
+# def evaluate_bleu(eval_dataloader, len_eval_dataset, model, tokenizer, args, sentence_bleu=False):
+#     model.to(args.device)
+#     model.eval()
+#     bleu_scores = []
+#
+#     for batch in tqdm(eval_dataloader, desc="Evaluating BLEU"):
+#         inputs, labels = batch
+#         inputs = inputs.to(args.device)
+#         labels = labels.to(args.device)
+#
+#         example_ids = model.generate(inputs, max_length=args.max_utter_len)
+#         examples = tokenizer.batch_decode(example_ids, skip_special_tokens=True)
+#         targets = tokenizer.batch_decode(labels, skip_special_tokens=True)
+#
+#         for example, target in zip(examples, targets):
+#             bleu_scores.append(sacrebleu.sentence_bleu(example, [target]).score)
+#
+#     if sentence_bleu:
+#         return bleu_scores
+#     else:
+#         return sum(bleu_scores) / len_eval_dataset
 
 
 def evaluate_data_set(eval_dataloader, model, tokenizer, metrics, args, sentence_level=False):
@@ -137,10 +137,14 @@ def evaluate_data_set(eval_dataloader, model, tokenizer, metrics, args, sentence
     """
     model.to(args.device)
     model.eval()
-    eval_losses, bleu_scores, slot_accuracies = [], [], []
+    eval_losses, bleu_scores, bleurt_scores, slot_accuracies = [], [], [], []
 
-    loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
-    for batch in tqdm(eval_dataloader, desc="Evaluating BLEU"):
+    if 'loss' in metrics:
+        loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
+    if 'bleurt' in metrics:
+        bleurt_scorer = bleurt.score.BleurtScorer()
+
+    for batch in tqdm(eval_dataloader, desc="Evaluating Metrics"):
         inputs, labels = batch
         inputs = inputs.to(args.device)
         labels = labels.to(args.device)
@@ -152,25 +156,32 @@ def evaluate_data_set(eval_dataloader, model, tokenizer, metrics, args, sentence
                 sample_losses = torch.mean(tmp_loss, dim=0)
                 eval_losses.extend(sample_losses.tolist())
 
-            if 'bleu' in metrics or 'accu' in metrics:
+            if 'bleu' in metrics or 'accu' in metrics or 'bleurt' in metrics:
                 example_ids = model.generate(inputs, max_length=args.max_utter_len)
                 examples = tokenizer.batch_decode(example_ids, skip_special_tokens=True)
-                targets = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-                for inp, example, target in zip(inputs, examples, targets):
-                    if 'bleu' in metrics:
-                        bleu_scores.append(sacrebleu.sentence_bleu(example, [target]).score)
-                    if 'accu' in metrics:
-                        slot_accuracies.append(calc_slot_accu(inp, example))
+                if 'bleu' in metrics or 'bleurt' in metrics:
+                    targets = tokenizer.batch_decode(labels, skip_special_tokens=True)
+                    for example, target in zip(examples, targets):
+                        if 'bleu' in metrics:
+                            bleu_scores.append(sacrebleu.sentence_bleu(example, [target]).score)
+                        if 'bleurt' in metrics:
+                            bleurt_scores.append(bleurt_scorer.score(references=[target], candidates=[example])[0])
+                if 'accu' in metrics:
+                    sources = tokenizer.batch_decode(inputs, skip_special_tokens=True)
+                    for source, example in zip(sources, examples):
+                        slot_accuracies.append(calc_slot_accu(source, example))
 
     if sentence_level:
-        res = {'loss': eval_losses, "bleu": bleu_scores, 'accu': slot_accuracies}
+        res = {'loss': eval_losses, "bleu": bleu_scores, "bleurt": bleurt_scores, 'accu': slot_accuracies}
     else:
         res = {}
         if "loss" in metrics:
             res['loss'] = sum(eval_losses) / len(eval_losses)
         if "bleu" in metrics:
             res['bleu'] = sum(bleu_scores) / len(bleu_scores)
+        if "bleurt" in metrics:
+            res['bleurt'] = sum(bleurt_scores) / len(bleurt_scores)
         if "accu" in metrics:
             res["accu"] = sum(slot_accuracies) / len(slot_accuracies)
     return res

@@ -4,7 +4,7 @@ export CUDA_VISIBLE_DEVICES=0
 ### Curriculum ###
 curriculum_name=$1
 dataset="sgd"
-domain="naive_5_shot"
+domain="naive_10_shot"
 
 ## Do NOT modify
 output_dir=saved_models/${dataset}/${domain}/${curriculum_name}
